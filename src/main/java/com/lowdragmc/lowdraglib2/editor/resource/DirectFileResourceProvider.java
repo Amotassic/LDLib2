@@ -85,7 +85,7 @@ public final class DirectFileResourceProvider<T> {
     private T readResourceFromFile(File file) {
         if (!file.isFile()) return null;
         try {
-            var fileData = NbtIo.read(file.toPath());
+            var fileData = NbtIo.read(file);
             if (fileData != null) {
                 var data = deserializeNBT(fileData, Platform.getFrozenRegistry());
                 if (data != null) return data;

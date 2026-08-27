@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.settings.AppearanceSettings;
 import com.lowdragmc.lowdraglib2.editor.settings.BehaviorSettings;
 import com.lowdragmc.lowdraglib2.editor.settings.EditorSettings;
+import com.lowdragmc.lowdraglib2.editor.ui.floating.FloatingViewManager;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.ViewMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.view.HistoryView;
@@ -14,16 +15,13 @@ import com.lowdragmc.lowdraglib2.editor.ui.view.ResourceView;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-import com.lowdragmc.lowdraglib2.editor.ui.floating.FloatingViewManager;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
@@ -39,18 +37,14 @@ import dev.vfyjxf.taffy.style.TaffyDimension;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import org.appliedenergistics.yoga.*;
-
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import org.appliedenergistics.yoga.YogaEdge;
 import org.jetbrains.annotations.Nullable;
+
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.ArrayDeque;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Deque;
+import java.util.*;
 import java.util.function.Supplier;
 
 @Getter
@@ -449,7 +443,7 @@ public abstract class Editor extends UIElement implements EditorHost {
         bottomWindow = resolveVisibleAnchor(anchorRegistry, ANCHOR_BOTTOM);
 
         // Place views into saved slots.
-        var placed = new java.util.HashSet<View>();
+        var placed = new HashSet<View>();
         for (var slot : layout.slots()) {
             var window = navigatePath(rootWindow, slot.path());
             if (window == null) continue;
@@ -778,7 +772,7 @@ public abstract class Editor extends UIElement implements EditorHost {
                     .setOverflowVisible(false)
                     .layout(layout -> layout.flex(1)));
             dialog.show(this.getModularUI());
-            if (dialog.buttonContainer.getChildren().getFirst() instanceof Button button) {
+            if (!dialog.buttonContainer.getChildren().isEmpty() && dialog.buttonContainer.getChildren().get(0) instanceof Button button) {
                 button.setText("ldlib.gui.editor.menu.save");
             }
             return;

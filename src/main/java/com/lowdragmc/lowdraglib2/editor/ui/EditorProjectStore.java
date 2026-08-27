@@ -2,13 +2,9 @@ package com.lowdragmc.lowdraglib2.editor.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
-
+import net.minecraft.nbt.*;
 import org.jetbrains.annotations.Nullable;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +34,7 @@ public final class EditorProjectStore {
         var file = getFile();
         if (!file.exists()) return new CompoundTag();
         try {
-            var tag = NbtIo.read(file.toPath());
+            var tag = NbtIo.read(file);
             return tag == null ? new CompoundTag() : tag;
         } catch (Exception e) {
             return new CompoundTag();
@@ -47,7 +43,7 @@ public final class EditorProjectStore {
 
     private static void write(CompoundTag tag) {
         try {
-            NbtIo.write(tag, getFile().toPath());
+            NbtIo.write(tag, getFile());
         } catch (Exception e) {
             LDLib2.LOGGER.error("Failed to save the editor project store: ", e);
         }

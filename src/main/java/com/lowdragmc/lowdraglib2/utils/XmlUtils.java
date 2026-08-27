@@ -1,18 +1,13 @@
 package com.lowdragmc.lowdraglib2.utils;
 
-import com.google.gson.JsonParser;
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.data.EntityInfo;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.serialization.JsonOps;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -32,7 +27,8 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec2;
-import net.neoforged.neoforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -41,13 +37,14 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXParseException;
 
-import org.jetbrains.annotations.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * @author KilaBash
@@ -213,23 +210,6 @@ public class XmlUtils {
         return new CompoundTag();
     }
 
-    public static DataComponentMap getComponents(Element element) {
-        NodeList nodeList = element.getChildNodes();
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            String text = node.getTextContent().replaceAll("\\h*\\R+\\h*", " ");
-            if (!text.isEmpty() && text.charAt(0) == ' ') {
-                text = text.substring(1);
-            }
-            builder.append(text);
-        }
-        if (!builder.isEmpty()) {
-            return DataComponentMap.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(builder.toString())).result().orElse(DataComponentMap.EMPTY);
-        }
-        return DataComponentMap.EMPTY;
-    }
-
     public static ItemStack getItemStack(Element element) {
         var ingredient = getIngredient(element);
         if (ingredient.ingredient.getItems().length > 0) {
@@ -291,7 +271,7 @@ public class XmlUtils {
                 NodeList nodeList = element.getChildNodes();
                 for (int i = 0; i < nodeList.getLength(); i++) {
                     if (nodeList.item(i) instanceof Element subElement && subElement.getNodeName().equals("components")) {
-                        itemStack.applyComponents(getComponents(subElement));
+                        itemStack.setTag(getCompoundTag(subElement));
                         break;
                     }
                 }
@@ -313,7 +293,7 @@ public class XmlUtils {
                 var nodeList = element.getChildNodes();
                 for (int i = 0; i < nodeList.getLength(); i++) {
                     if (nodeList.item(i) instanceof Element subElement && subElement.getNodeName().equals("components")) {
-                        fluidStack.applyComponents(getComponents(subElement));
+                        fluidStack.setTag(getCompoundTag(subElement));
                         break;
                     }
                 }

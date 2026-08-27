@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 /**
  * Plain file system operations for the {@link AssetBrowser}, plus the prompts that guard them.
  * <p>
- * {@link com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog#showFileDialog} has an equivalent set of
+ * {@link Dialog#showFileDialog} has an equivalent set of
  * actions, but they live in a package-private class with private members and are wired to the file
  * dialog itself, so they cannot be shared.
  */

@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib2.networking;
 
+import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
+import com.lowdragmc.lowdraglib2.compat.network.custom.CustomPacketPayload;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
  * a packet that contains a BlockPos

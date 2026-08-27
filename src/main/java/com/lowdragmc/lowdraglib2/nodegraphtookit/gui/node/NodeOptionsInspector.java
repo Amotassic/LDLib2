@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.FieldValueInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
@@ -88,14 +87,12 @@ public class NodeOptionsInspector extends ModelElement {
             // NodeElement#onSelectionInspect is what surfaces it instead.
             if (nodeOption.isShowInInspectorOnly()) continue;
             if (!portModel.isConfiguratorEnabled()) continue; // else it'd render as a label with nothing beside it
-            if (portModel instanceof IFieldValueConfigurable configurable) {
-                var inspector = new FieldValueInspector();
-                inspector.setFieldName(portModel.getDisplayName());
-                if (getGraphView() != null) inspector.setHistoryStack(getGraphView().getHistoryStack());
-                inspector.loadValueField(configurable);
-                addChildren(inspector);
-                rowCount++;
-            }
+            var inspector = new FieldValueInspector();
+            inspector.setFieldName(portModel.getDisplayName());
+            if (getGraphView() != null) inspector.setHistoryStack(getGraphView().getHistoryStack());
+            inspector.loadValueField(portModel);
+            addChildren(inspector);
+            rowCount++;
         }
     }
 }
