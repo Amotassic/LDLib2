@@ -109,7 +109,7 @@ public final class RunConfig {
      * the control channel, and the MP scenario collection reads it from there, not from here. The
      * watchdog is more generous than solo because three game processes share the machine.
      */
-    static RunConfig forMultiProcess(java.nio.file.Path outDir) {
+    static RunConfig forMultiProcess(Path outDir) {
         return new RunConfig("<multi-process>", "", outDir,
                 2, 0, 0, InputMode.SYNTHETIC, 180, false);
     }

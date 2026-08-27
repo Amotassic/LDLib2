@@ -20,14 +20,14 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * A Unity-style transform gizmo (move / rotate / scale) rendered on top of the scene.
@@ -402,7 +402,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     public void draw(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
         if (targetTransform == null) return;
         poseStack.pushPose();
-        poseStack.mulPose(gizmoMatrix());
+        poseStack.mulPoseMatrix(gizmoMatrix());
         drawInternal(poseStack, bufferSource, partialTicks);
         poseStack.popPose();
     }
@@ -487,7 +487,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private void drawRotateIndicator(PoseStack poseStack, MultiBufferSource bufferSource) {
         if (targetTransform == null) return;
         poseStack.pushPose();
-        poseStack.mulPose(gizmoMatrix().invert()); // back to world space
+        poseStack.mulPoseMatrix(gizmoMatrix().invert()); // back to world space
         var center = targetTransform.position();
         var radius = RING_RADIUS * computeGizmoScale();
         var u = new Vector3f(dragStartHandleDir);

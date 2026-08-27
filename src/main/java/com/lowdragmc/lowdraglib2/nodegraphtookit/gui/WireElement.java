@@ -8,15 +8,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortOrientation;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyTypes;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortOrientation;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.PortElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
@@ -247,7 +246,7 @@ public class WireElement extends GraphElement<WireModel> {
         var graphView = getGraphView();
         if (graphView == null) return new Vector2f();
         var nodeModel = port.getNodeModel();
-        boolean collapsed = nodeModel instanceof AbstractNodeModel anm && anm.isCollapsed();
+        boolean collapsed = nodeModel != null && nodeModel.isCollapsed();
         if (collapsed && graphView.getModelElement(nodeModel) instanceof NodeElement nodeElement
                 && nodeElement.getNodeTittle() != null) {
             var title = nodeElement.getNodeTittle();
@@ -442,7 +441,7 @@ public class WireElement extends GraphElement<WireModel> {
         float dx = b.x - a.x, dy = b.y - a.y;
         float length2 = dx * dx + dy * dy;
         float t = length2 < 1e-6f ? 0f : ((point.x - a.x) * dx + (point.y - a.y) * dy) / length2;
-        t = Math.clamp(t, 0f, 1f);
+        t = Math.min(Math.max(t, 0f), 1f);
         float ex = point.x - (a.x + t * dx);
         float ey = point.y - (a.y + t * dy);
         return (float) Math.sqrt(ex * ex + ey * ey);
@@ -467,7 +466,7 @@ public class WireElement extends GraphElement<WireModel> {
         if (input == null || input.size() < 3) return input;
 
         var out = new ArrayList<Vector2f>(input.size() * (cornerSegments + 1));
-        out.add(new Vector2f(input.getFirst()));
+        out.add(new Vector2f(input.get(0)));
 
         for (var i = 1; i < input.size() - 1; i++) {
             Vector2f A = input.get(i - 1);
@@ -526,7 +525,7 @@ public class WireElement extends GraphElement<WireModel> {
             out.add(P2);
         }
 
-        out.add(new Vector2f(input.getLast()));
+        out.add(new Vector2f(input.get(input.size() - 1)));
         return out;
     }
 

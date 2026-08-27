@@ -15,8 +15,8 @@ import com.lowdragmc.lowdraglib2.test.ui.IMenuTest;
 import com.lowdragmc.lowdraglib2.test.ui.IScreenTest;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.uitest.mp.MPScenario;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.function.Supplier;
 
@@ -45,7 +45,7 @@ public class LDLib2Registries {
      * Automated UI test scenarios. Populated by an annotation scan over every loaded mod, so a mod
      * depending on LDLib2 registers its own scenarios with no changes here.
      *
-     * @see com.lowdragmc.lowdraglib2.uitest.UIScenario
+     * @see UIScenario
      */
     @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<UIScenario, Supplier<UIScenario>> UI_SCENARIOS;
@@ -54,7 +54,7 @@ public class LDLib2Registries {
      * Multi-process test scenarios. Deliberately a dist-neutral registry: the dedicated-server
      * process of a {@code runMpTest} run discovers scenarios through it too.
      *
-     * @see com.lowdragmc.lowdraglib2.uitest.mp.MPScenario
+     * @see MPScenario
      */
     public static AutoRegistry.LDLibRegister<MPScenario, Supplier<MPScenario>> MP_SCENARIOS;
 

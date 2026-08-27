@@ -2,25 +2,25 @@ package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
+import com.lowdragmc.lowdraglib2.client.ClientEventListener;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
-import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
-import com.lowdragmc.lowdraglib2.gui.ui.style.HierarchicalStyleMatcher;
-import com.lowdragmc.lowdraglib2.utils.animation.AnimationEngine;
-import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
-import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
+import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
+import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
+import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
+import com.lowdragmc.lowdraglib2.gui.ui.style.HierarchicalStyleMatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
-import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.utils.Scope;
+import com.lowdragmc.lowdraglib2.utils.animation.AnimationEngine;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.AvailableSpace;
@@ -48,14 +48,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaConstants;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
-import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
 import java.util.*;
@@ -94,7 +94,7 @@ public class ModularUI {
     private ModularUIWidget widget;
     @Nullable
     @OnlyIn(Dist.CLIENT)
-    @Getter(onMethod_ = {@OnlyIn(Dist.CLIENT)})
+    @Getter
     private Screen screen;
     @Getter
     private TaffyTree taffyTree;
@@ -320,7 +320,7 @@ public class ModularUI {
     public UIElement getElementById(@Nullable String id) {
         if (id == null || id.isEmpty()) return null;
         List<UIElement> elements = elementsById.get(id);
-        return elements != null && !elements.isEmpty() ? elements.getFirst() : null;
+        return elements != null && !elements.isEmpty() ? elements.get(0) : null;
     }
 
     /**
@@ -1067,6 +1067,10 @@ public class ModularUI {
         }
 
         @Override
+        public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
+            return mouseScrolled(mouseX, mouseY, 0, scrollY);
+        }
+
         public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
             var current = getLastHoveredElement();
             if (current != null) {
@@ -1305,8 +1309,8 @@ public class ModularUI {
 
         private void renderFrame(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, UISurface surface) {
             // update tick
-            if (tickWhileRending && Minecraft.getInstance() instanceof MinecraftAccessor accessor) {
-                var currentTick = accessor.ldlib2$getClientTickCount();
+            if (tickWhileRending) {
+                var currentTick = ClientEventListener.getClientTickCount();
                 if (currentTick != lastTick) {
                     tick();
                     lastTick = currentTick;
@@ -1372,7 +1376,7 @@ public class ModularUI {
             var transform = element.getLocalToWorldPose();
             graphics.pose().pushPose();
             graphics.pose().setIdentity();
-            graphics.pose().mulPose(transform);
+            graphics.pose().mulPoseMatrix(transform);
             var posX = element.getPositionX();
             var posY = element.getPositionY();
             var sizeX = element.getSizeWidth();

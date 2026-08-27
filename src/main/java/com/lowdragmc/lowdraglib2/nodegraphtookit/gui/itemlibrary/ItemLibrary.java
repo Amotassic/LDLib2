@@ -38,16 +38,11 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
+import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -211,7 +206,8 @@ public class ItemLibrary extends UIElement {
                     .setDragTexture(- width / 2f, -height / 2f, width, height);
         });
         resizeButton.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, e -> {
-            if (e.dragHandler.draggingObject instanceof DragResize(var oSize)) {
+            if (e.dragHandler.draggingObject instanceof DragResize dragResize) {
+                var oSize = dragResize.originalSize();
                 var normalSizeOffset = getLocalMouseNormal(e.x - e.dragStartX, e.y - e.dragStartY);
                 // Live resize — width/height are data-driven and must outrank stylesheet defaults.
                 Style.importantPipeline(getLayout(), l -> l
@@ -574,7 +570,7 @@ public class ItemLibrary extends UIElement {
      */
     protected List<PortModel> getCompatiblePorts(ItemLibraryItem item) {
         if (portModels == null || portModels.isEmpty()) return List.of();
-        return getCompatiblePorts(item, portModels.getFirst());
+        return getCompatiblePorts(item, portModels.get(0));
     }
 
     /** As {@link #getCompatiblePorts(ItemLibraryItem)}, for an explicit source port. */
@@ -659,7 +655,7 @@ public class ItemLibrary extends UIElement {
             var ports = getCompatiblePorts(nodeItem);
             if (ports.isEmpty()) return;
             owner = nodeItem;
-            portToConnect = ports.getFirst();
+            portToConnect = ports.get(0);
         } else return;
         var model = getTestModel(owner);
         if (model != null) {
@@ -766,9 +762,9 @@ public class ItemLibrary extends UIElement {
         if (portModels.isEmpty()) return;
         testModels.clear();
         this.portModels = portModels;
-        title.setText(Component.translatable("graph.library.choose", Component.translatable(portModels.getFirst().getDataTypeHandle().getFriendlyName())));
+        title.setText(Component.translatable("graph.library.choose", Component.translatable(portModels.get(0).getDataTypeHandle().getFriendlyName())));
         attachPortChildren();
-        setPortRecommendation(portModels.getFirst());
+        setPortRecommendation(portModels.get(0));
         show(mouseX, mouseY, onFinished);
     }
 

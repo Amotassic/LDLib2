@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib2.syncdata.ref;
 
 import com.google.common.base.Strings;
+import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.mojang.serialization.DynamicOps;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-
 import org.jetbrains.annotations.Nullable;
+
 import java.util.function.Predicate;
 
 /**

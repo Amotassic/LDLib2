@@ -1,12 +1,10 @@
 package com.lowdragmc.lowdraglib2.uitest;
 
-import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.uitest.input.InputDriver;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
@@ -119,7 +117,7 @@ public final class TestContext {
         var server = server();
         if (server == null) return null;
         var players = server.getPlayerList().getPlayers();
-        return players.isEmpty() ? null : players.getFirst();
+        return players.isEmpty() ? null : players.get(0);
     }
 
     @Nullable

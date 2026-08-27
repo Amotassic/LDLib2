@@ -57,7 +57,7 @@ public final class EditorLayoutStore {
                 }
                 tag.put(FLOATING_KEY, list);
             }
-            NbtIo.write(tag, getFile(projectTypeName).toPath());
+            NbtIo.write(tag, getFile(projectTypeName));
         } catch (Exception ignored) {}
     }
 
@@ -88,7 +88,7 @@ public final class EditorLayoutStore {
         var file = getFile(projectTypeName);
         if (!file.exists()) return Optional.empty();
         try {
-            return Optional.ofNullable(NbtIo.read(file.toPath()));
+            return Optional.ofNullable(NbtIo.read(file));
         } catch (Exception e) {
             return Optional.empty();
         }
