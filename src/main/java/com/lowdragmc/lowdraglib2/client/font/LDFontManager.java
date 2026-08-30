@@ -48,7 +48,7 @@ public class LDFontManager implements Function<ResourceLocation, FontSet>, Resou
     /**
      * The vanilla font holding the unicode fallback, appended to the end of every chain.
      */
-    public static final ResourceLocation UNIFONT = ResourceLocation.withDefaultNamespace("include/unifont");
+    public static final ResourceLocation UNIFONT = new ResourceLocation("include/unifont");
     private static final ResourceLocation ATLAS_NAME = LDLib2.id("font/sdf");
     private static final ResourceLocation RASTER_ATLAS_NAME = LDLib2.id("font/raster");
 
@@ -338,7 +338,7 @@ public class LDFontManager implements Function<ResourceLocation, FontSet>, Resou
         } else if (definition instanceof SpaceProvider.Definition space) {
             source = new SpaceSource(space.advances());
         } else {
-            var hexFile = ResourceLocation.parse(entry.raw().get("hex_file").getAsString());
+            var hexFile = new ResourceLocation(entry.raw().get("hex_file").getAsString());
             source = UnihexSdfSource.load(resourceManager, hexFile, UnihexSdfSource.parseOverrides(entry.raw()));
         }
         sourceCache.put(key, source);

@@ -218,7 +218,7 @@ public interface IGuiTexture extends IPersistedSerializable, IConfigurable, ILDL
         var location = modId + ":" + subPath;
 
         if (LDLib2.isValidResourceLocation(location)) {
-            return ResourceLocation.parse(location);
+            return new ResourceLocation(location);
         }
         return null;
     }

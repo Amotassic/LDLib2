@@ -38,7 +38,7 @@ public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
     @Override
     public ResourceLocation defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
-            return ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0]);
+            return new ResourceLocation(field.getAnnotation(DefaultValue.class).stringValue()[0]);
         }
         return LDLib2.id("default");
     }
@@ -84,12 +84,12 @@ public class ResourceLocationAccessor extends TypesAccessor<ResourceLocation> {
         }
         var configurator = new StringConfigurator(name,
                 () -> supplier.get().toString(),
-                s -> consumer.accept(ResourceLocation.parse(s)),
+                s -> consumer.accept(new ResourceLocation(s)),
                 defaultValue(field, String.class).toString(),
                 forceUpdate).setResourceLocation(true);
         configurator.setPastable(String.class, pasted -> {
             if (pasted != null && LDLib2.isValidResourceLocation(pasted)) {
-                consumer.accept(ResourceLocation.parse(pasted));
+                consumer.accept(new ResourceLocation(pasted));
                 configurator.notifyChanges();
             }
         });

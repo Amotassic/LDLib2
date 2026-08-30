@@ -22,6 +22,7 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
+import net.neoforged.neoforge.network.payload.SyncAttachmentsPayload;
 
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -54,6 +55,8 @@ public class LDLNetworking {
         register(id++, PacketModularUISync.class, PacketModularUISync.CODEC, PacketModularUISync::execute, Optional.empty());
 
         register(id++, PacketRPCPacket.class, PacketRPCPacket.CODEC, PacketRPCPacket::execute, Optional.empty());
+
+        register(id++, SyncAttachmentsPayload.class, SyncAttachmentsPayload.STREAM_CODEC, SyncAttachmentsPayload::execute, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
     }
 
     private static <MSG extends CustomPacketPayload> void register(

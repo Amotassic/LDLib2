@@ -24,7 +24,7 @@ public abstract class ShaderInstanceMixin implements ILDShaderInstance {
     @Redirect(method = "<init>(Lnet/minecraft/server/packs/resources/ResourceProvider;Lnet/minecraft/resources/ResourceLocation;Lcom/mojang/blaze3d/vertex/VertexFormat;)V",
             at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/shaders/ProgramManager;linkShader(Lcom/mojang/blaze3d/shaders/Shader;)V"))
     private void ldlib2$linkShader(Shader shader, ResourceProvider resourceProvider, ResourceLocation shaderLocation, VertexFormat vertexFormat) throws IOException {
-        var jsonLocation = ResourceLocation.fromNamespaceAndPath(shaderLocation.getNamespace(), "shaders/core/" + shaderLocation.getPath() + ".json");
+        var jsonLocation = new ResourceLocation(shaderLocation.getNamespace(), "shaders/core/" + shaderLocation.getPath() + ".json");
         try (var reader = resourceProvider.openAsReader(jsonLocation)) {
             this.onCreateShader(resourceProvider, shaderLocation, vertexFormat, GsonHelper.parse(reader));
         }

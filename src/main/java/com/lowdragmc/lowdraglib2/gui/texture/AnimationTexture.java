@@ -72,7 +72,7 @@ public class AnimationTexture extends TransformTexture {
     }
 
     public AnimationTexture(String imageLocation) {
-        this.imageLocation = ResourceLocation.parse(imageLocation);
+        this.imageLocation = new ResourceLocation(imageLocation);
     }
 
     public AnimationTexture(ResourceLocation imageLocation) {
@@ -86,7 +86,7 @@ public class AnimationTexture extends TransformTexture {
     }
 
     public AnimationTexture setTexture(String imageLocation) {
-        this.imageLocation = ResourceLocation.parse(imageLocation);
+        this.imageLocation = new ResourceLocation(imageLocation);
         return this;
     }
 

@@ -252,7 +252,7 @@ public class TextureValue extends StyleValue<IGuiTexture> {
             }
             case "shader" -> {
                 if (args.length > 0) {
-                    return new ShaderTexture(ResourceLocation.parse(args[0]));
+                    return new ShaderTexture(new ResourceLocation(args[0]));
                 }
             }
             case "vanilla-sprite" -> {

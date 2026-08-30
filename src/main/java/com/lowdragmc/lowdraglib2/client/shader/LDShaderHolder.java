@@ -249,7 +249,7 @@ public class LDShaderHolder implements IConfigurable, IProviderAwareNBTSerializa
     public Object deserializeSampler(CompoundTag tag) {
         var type  = tag.getString("type");
         if (type.equals("texture")) {
-            return ResourceLocation.parse(tag.getString("resource"));
+            return new ResourceLocation(tag.getString("resource"));
         }
         return null;
     }

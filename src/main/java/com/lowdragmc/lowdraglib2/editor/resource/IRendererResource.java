@@ -78,7 +78,7 @@ public class IRendererResource extends Resource<IRenderer> {
             var path = location.getPath();
             if (path.startsWith("models/")) path = path.substring("models/".length());
             if (path.endsWith(".json")) path = path.substring(0, path.length() - ".json".length());
-            context.complete(new IModelRenderer(ResourceLocation.fromNamespaceAndPath(location.getNamespace(), path)));
+            context.complete(new IModelRenderer(new ResourceLocation(location.getNamespace(), path)));
             reloadResourcesAndRefreshOpenedContainers();
         }, context::cancel);
     }

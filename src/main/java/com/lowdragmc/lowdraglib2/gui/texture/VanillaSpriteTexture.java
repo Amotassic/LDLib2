@@ -37,7 +37,7 @@ public class VanillaSpriteTexture extends TransformTexture {
     @ConfigSearch(searchConfiguratorMethod = "searchSprites")
     @Getter
     @Setter
-    private ResourceLocation sprite = ResourceLocation.withDefaultNamespace("toast/recipe_book");
+    private ResourceLocation sprite = new ResourceLocation("toast/recipe_book");
 
     @Configurable
     @ConfigColor
@@ -59,7 +59,7 @@ public class VanillaSpriteTexture extends TransformTexture {
 
     @HideFromJS
     public static VanillaSpriteTexture of(String sprite) {
-        return of(ResourceLocation.parse(sprite));
+        return of(new ResourceLocation(sprite));
     }
 
     @RemapForJS("of")
@@ -91,7 +91,7 @@ public class VanillaSpriteTexture extends TransformTexture {
             @Override
             @NotNull
             public ResourceLocation defaultValue() {
-                return ResourceLocation.withDefaultNamespace("toast/recipe_book");
+                return new ResourceLocation("toast/recipe_book");
             }
 
             @Override

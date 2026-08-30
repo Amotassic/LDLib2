@@ -89,7 +89,7 @@ public class SpriteTexture extends TransformTexture {
 
     @HideFromJS
     public static SpriteTexture of(String imageLocation) {
-        return of(ResourceLocation.parse(imageLocation));
+        return of(new ResourceLocation(imageLocation));
     }
 
     @RemapForJS("of")

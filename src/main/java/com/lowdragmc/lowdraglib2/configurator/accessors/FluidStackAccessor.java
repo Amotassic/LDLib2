@@ -30,7 +30,7 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
     @Override
     public FluidStack defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
-            return new FluidStack(BuiltInRegistries.FLUID.get(ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])), 1000);
+            return new FluidStack(BuiltInRegistries.FLUID.get(new ResourceLocation(field.getAnnotation(DefaultValue.class).stringValue()[0])), 1000);
         }
         return new FluidStack(Fluids.WATER, 1000);
     }
