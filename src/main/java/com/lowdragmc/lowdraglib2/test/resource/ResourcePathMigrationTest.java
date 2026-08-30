@@ -195,7 +195,7 @@ public class ResourcePathMigrationTest {
     @PrefixGameTestTemplate(false)
     public static void toResourceLocationStillDerives(GameTestHelper helper) {
         var path = new FilePath(new File(LDLib2.getAssetsDir(), "ldlib2/resources/global/x.color.nbt"));
-        var expected = ResourceLocation.fromNamespaceAndPath("ldlib2", "resources/global/x.color.nbt");
+        var expected = new ResourceLocation("ldlib2", "resources/global/x.color.nbt");
         if (!expected.equals(path.getLocation())) {
             helper.fail("Expected " + expected + ", got " + path.getLocation());
             return;

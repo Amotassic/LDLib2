@@ -246,7 +246,7 @@ public class XmlUtils {
         int id = getAsInt(element, "id", LDLib2.RANDOM.nextInt());
         EntityType<?> entityType = null;
         if (element.hasAttribute("type")) {
-            entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(element.getAttribute("type")));
+            entityType = BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(element.getAttribute("type")));
         }
         CompoundTag tag = null;
         NodeList nodeList = element.getChildNodes();
@@ -265,7 +265,7 @@ public class XmlUtils {
         int count = getAsInt(element, "count", 1);
         var ingredient = new SizedIngredient(Ingredient.EMPTY, 0);
         if (element.hasAttribute("item")) {
-            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(element.getAttribute("item")));
+            Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(element.getAttribute("item")));
             if (item != Items.AIR) {
                 ItemStack itemStack = new ItemStack(item, count);
                 NodeList nodeList = element.getChildNodes();
@@ -278,7 +278,7 @@ public class XmlUtils {
                 ingredient = new SizedIngredient(Ingredient.of(itemStack), count);
             }
         } else if (element.hasAttribute("tag")) {
-            ingredient = new SizedIngredient(Ingredient.of(TagKey.create(Registries.ITEM, ResourceLocation.parse(element.getAttribute("tag")))), count);
+            ingredient = new SizedIngredient(Ingredient.of(TagKey.create(Registries.ITEM, new ResourceLocation(element.getAttribute("tag")))), count);
         }
         return ingredient;
     }
@@ -287,7 +287,7 @@ public class XmlUtils {
         int amount = getAsInt(element, "amount", 1) * FluidHelper.getBucket() / 1000;
         FluidStack fluidStack = FluidStack.EMPTY;
         if (element.hasAttribute("fluid")) {
-            var fluid = BuiltInRegistries.FLUID.get(ResourceLocation.parse(element.getAttribute("fluid")));
+            var fluid = BuiltInRegistries.FLUID.get(new ResourceLocation(element.getAttribute("fluid")));
             if (fluid != Fluids.EMPTY) {
                 fluidStack = new FluidStack(fluid, amount);
                 var nodeList = element.getChildNodes();
@@ -305,7 +305,7 @@ public class XmlUtils {
     public static BlockInfo getBlockInfo(Element element) {
         BlockInfo blockInfo = BlockInfo.EMPTY;
         if (element.hasAttribute("block")) {
-            Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(element.getAttribute("block")));
+            Block block = BuiltInRegistries.BLOCK.get(new ResourceLocation(element.getAttribute("block")));
             if (block != Blocks.AIR) {
                 var blockState = block.defaultBlockState();
                 val nodeList = element.getChildNodes();
@@ -421,7 +421,7 @@ public class XmlUtils {
                             newStyle = newStyle.withBold(getAsBoolean(nodeElement, "bold", true));
                         }
                         if (nodeElement.hasAttribute("font")) {
-                            newStyle = newStyle.withFont(ResourceLocation.parse(nodeElement.getAttribute("font")));
+                            newStyle = newStyle.withFont(new ResourceLocation(nodeElement.getAttribute("font")));
                         }
                         if (nodeElement.hasAttribute("italic")) {
                             newStyle = newStyle.withItalic(getAsBoolean(nodeElement, "italic", true));

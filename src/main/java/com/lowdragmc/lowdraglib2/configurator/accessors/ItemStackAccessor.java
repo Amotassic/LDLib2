@@ -41,7 +41,7 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
     @Override
     public ItemStack defaultValue(@Nullable Field field, @Nullable Class<?> type) {
         if (field != null && field.isAnnotationPresent(DefaultValue.class)) {
-            return BuiltInRegistries.ITEM.get(ResourceLocation.parse(field.getAnnotation(DefaultValue.class).stringValue()[0])).getDefaultInstance();
+            return BuiltInRegistries.ITEM.get(new ResourceLocation(field.getAnnotation(DefaultValue.class).stringValue()[0])).getDefaultInstance();
         }
         return ItemStack.EMPTY;
     }

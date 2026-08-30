@@ -230,7 +230,7 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
         @Override
         public V readBuf(RegistryFriendlyByteBuf buf) {
             if (buf.readBoolean()) {
-                return get(ResourceLocation.parse(buf.readUtf()));
+                return get(new ResourceLocation(buf.readUtf()));
             }
             return null;
         }
@@ -245,7 +245,7 @@ public abstract class LDLRegistry<K, V> implements Iterable<V> {
 
         @Override
         public V loadFromNBT(Tag tag) {
-            return get(ResourceLocation.parse(tag.getAsString()));
+            return get(new ResourceLocation(tag.getAsString()));
         }
 
         @Override

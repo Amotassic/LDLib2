@@ -68,7 +68,7 @@ public class IModelRenderer implements IRenderer {
     protected volatile Map<ModelStateCacheKey, BakedModel> modelCaches;
 
     protected IModelRenderer() {
-        this(ResourceLocation.withDefaultNamespace("block/furnace"));
+        this(new ResourceLocation("block/furnace"));
     }
 
     public IModelRenderer(ResourceLocation modelLocation) {
@@ -386,7 +386,7 @@ public class IModelRenderer implements IRenderer {
         var location = modId + ":" + modelPath.substring(0, modelPath.length() - 5); // remove ".json" suffix
 
         if (LDLib2.isValidResourceLocation(location)) {
-            return ResourceLocation.parse(location);
+            return new ResourceLocation(location);
         }
         return null;
     }

@@ -49,7 +49,7 @@ public class LDShaderInstance extends ShaderInstance implements ILDShaderInstanc
      */
     @Nullable
     public static LDShaderInstance create(ResourceProvider resourceProvider, ResourceLocation location, VertexFormat format, Set<String> defines) throws Throwable {
-        var resourcelocation = ResourceLocation.fromNamespaceAndPath(location.getNamespace(), "shaders/core/" + location.getPath() + ".json");
+        var resourcelocation = new ResourceLocation(location.getNamespace(), "shaders/core/" + location.getPath() + ".json");
         if (resourceProvider.getResource(resourcelocation).isEmpty()) return null;
         for (var define : defines) {
             LDProgramDefineManager.addProgramDefine(define);

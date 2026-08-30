@@ -14,6 +14,7 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,7 @@ public class LDLib2 {
     }
 
     private LDLib2(IEventBus eventBus) {
+        eventBus.addListener(NeoForgeRegistries::newRegistry);
         LDLib2.init();
         new CommonProxy(eventBus);
         if (FMLEnvironment.dist == Dist.CLIENT) {
@@ -84,7 +86,7 @@ public class LDLib2 {
     }
 
     public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+        return new ResourceLocation(MOD_ID, path);
     }
 
     public static boolean isClient() {

@@ -52,21 +52,21 @@ public abstract class ModelBakeryMixin {
     }
 
     @Inject(method = "loadTopLevel", at = @At("HEAD"), cancellable = true)
-    protected void ldlib2$loadRendererModelForBlockRendererProvider(ModelResourceLocation modelResourceLocation, CallbackInfo ci) {
-        if (modelResourceLocation.getVariant().equals("standalone")) {
-            ResourceLocation resourceLocation = ResourceLocation.fromNamespaceAndPath(modelResourceLocation.getNamespace(), modelResourceLocation.getPath());
+    protected void ldlib2$loadRendererModelForBlockRendererProvider(ModelResourceLocation location, CallbackInfo ci) {
+        if (location.getVariant().equals("standalone")) {
+            ResourceLocation resourceLocation = new ResourceLocation(location.getNamespace(), location.getPath());
             UnbakedModel model = getModel(resourceLocation);
-            unbakedCache.put(modelResourceLocation, model);
-            topLevelModels.put(modelResourceLocation, model);
+            unbakedCache.put(location, model);
+            topLevelModels.put(location, model);
             ci.cancel();
             return;
         }
-        ResourceLocation resourceLocation = ResourceLocation.fromNamespaceAndPath(modelResourceLocation.getNamespace(), modelResourceLocation.getPath());
+        ResourceLocation resourceLocation = new ResourceLocation(location.getNamespace(), location.getPath());
         var block = BuiltInRegistries.BLOCK.get(resourceLocation);
         if (block instanceof IBlockRendererProvider) {
             UnbakedModel newModel = getModel(LDLib2.id("block/renderer_model"));
-            unbakedCache.put(modelResourceLocation, newModel);
-            topLevelModels.put(modelResourceLocation, newModel);
+            unbakedCache.put(location, newModel);
+            topLevelModels.put(location, newModel);
             ci.cancel();
         }
     }

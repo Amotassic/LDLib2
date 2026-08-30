@@ -222,7 +222,7 @@ public class ShaderTexture extends TransformTexture implements AutoCloseable {
         var location = modId + ":" + shaderPath.substring(0, shaderPath.length() - 5); // remove ".json" suffix
 
         if (LDLib2.isValidResourceLocation(location)) {
-            return ResourceLocation.parse(location);
+            return new ResourceLocation(location);
         }
         return null;
     }
