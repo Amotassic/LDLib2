@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
 import com.lowdragmc.lowdraglib2.editor.resource.UIResource;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
@@ -26,6 +25,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.TaffyPosition;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -44,12 +44,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -164,7 +159,7 @@ public class TestComponentExamples implements IScreenTest {
             layout.widthPercent(100);
             layout.height(THEME_SCROLLER_HEIGHT);
         });
-        container.addChildAt(scroller, container.getChildren().indexOf(toggles.getFirst()));
+        container.addChildAt(scroller, container.getChildren().indexOf(toggles.get(0)));
         for (var toggle : toggles) {
             container.removeChild(toggle);
             scroller.addScrollViewChild(toggle);

@@ -5,11 +5,10 @@ import com.lowdragmc.lowdraglib2.gui.sync.bindings.IDataProvider;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.IPausable;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeWidgetHandler;
 import lombok.Getter;
+import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.inputs.IJeiGuiEventListener;
 import mezz.jei.api.gui.widgets.IRecipeWidget;
-import mezz.jei.api.gui.widgets.ISlottedRecipeWidget;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,26 +19,18 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class ModularUIJEIWidget implements IRecipeWidget, ISlottedRecipeWidget, IJeiGuiEventListener {
+public class ModularUIJEIWidget implements IRecipeWidget, IJeiGuiEventListener {
     public static final ScreenPosition ZERO = new ScreenPosition(0, 0);
     public final ModularUI modularUI;
     // runtime
     @Getter
     private Matrix4f localToWorld = new Matrix4f();
-    private final List<JEIRecipeWidgetHandler.RecipeSlotProvider> recipeSlotProviders = new ArrayList<>();
 
     public ModularUIJEIWidget(ModularUI modularUI) {
         this.modularUI = modularUI;
-    }
-
-    public void addRecipeSlotProvider(JEIRecipeWidgetHandler.RecipeSlotProvider provider) {
-        recipeSlotProviders.add(provider);
     }
 
     /// IRecipeWidget
@@ -72,15 +63,12 @@ public class ModularUIJEIWidget implements IRecipeWidget, ISlottedRecipeWidget, 
         return new Vector2f(realMouse.x, realMouse.y);
     }
 
-    @Override
-    public Optional<mezz.jei.api.gui.inputs.RecipeSlotUnderMouse> getSlotUnderMouse(double mouseX, double mouseY) {
-        for (var provider : recipeSlotProviders) {
-            var slot = provider.getRecipeSlots(mouseX, mouseY);
-            if (slot != null) {
-                return Optional.of(slot);
-            }
+    //@Override
+    public void getTooltip(ITooltipBuilder tooltipBuilder, double mouseX, double mouseY) {
+        if (!modularUI.getDragHandler().isDragging() && modularUI.getTooltipTexts() != null && !modularUI.getTooltipTexts().isEmpty()) {
+            tooltipBuilder.addAll(modularUI.getTooltipTexts());
+            if (modularUI.getTooltipComponent() != null) tooltipBuilder.add(modularUI.getTooltipComponent());
         }
-        return Optional.empty();
     }
 
     @Override

@@ -10,13 +10,13 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nonnull;
-import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.RandomAccess;
 
@@ -1049,7 +1049,7 @@ public class RenderBufferUtils {
                 torusPoint(corners[3], center, radial0, n, radius, tubeRadius, b1);
                 for (int corner : QUAD_BOTH_SIDES) {
                     var p = corners[corner];
-                    buffer.addVertex(mat, p.x, p.y, p.z).setColor(red, green, blue, alpha);
+                    buffer.vertex(mat, p.x, p.y, p.z).color(red, green, blue, alpha).endVertex();
                 }
             }
         }

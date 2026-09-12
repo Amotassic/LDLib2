@@ -12,10 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.*;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
@@ -620,7 +617,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             return;
         }
         // The current provider when it can take the copy — the old behaviour, still the common case.
-        var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.getFirst();
+        var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.get(0);
         showCopyDialog(targets, defaultTarget, resourceProvider.getResourceName(key) + "_copy",
                 (target, name) -> copyResourceTo(copied, target, name));
     }

@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
+import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebuggerWindow;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;

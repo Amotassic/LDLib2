@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.lowdragmc.lowdraglib2.CommonListeners.ModCreativeModeTab;
 import com.lowdragmc.lowdraglib2.client.ClientProxy;
 import com.lowdragmc.lowdraglib2.core.mixins.MixinPluginShared;
-import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraftforge.api.distmarker.Dist;
