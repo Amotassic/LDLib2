@@ -15,6 +15,7 @@
     "ObjModelMixin",
     "ParticleEngineAccessor",
     "ParticleEngineMixin",
+    "RenderSystemMixin",
     "SimpleTextureMixin",
     "SpriteSourceListMixin",
     "WorldRendererMixin",

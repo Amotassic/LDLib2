@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.compat.network.ConnectionType;
 import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.networking.LDLNetworking;
+import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.level.ChunkMap;
@@ -25,7 +26,6 @@ import net.minecraftforge.event.level.ChunkWatchEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.neoforged.neoforge.common.util.FriendlyByteBufUtil;
 import net.neoforged.neoforge.network.payload.SyncAttachmentsPayload;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.jetbrains.annotations.ApiStatus;
@@ -66,7 +66,7 @@ public final class AttachmentSync {
         if (registryAccess == null) {
             return;
         }
-        var data = FriendlyByteBufUtil.writeCustomData(buf -> {
+        var data = ByteBufUtil.writeCustomData(buf -> {
             var existingData = holder.getExistingDataOrNull(type);
             if (existingData != null) {
                 buf.writeBoolean(true);
@@ -141,7 +141,7 @@ public final class AttachmentSync {
             return null;
         }
         List<AttachmentType<?>> syncedTypes = new ArrayList<>();
-        var data = FriendlyByteBufUtil.writeCustomData(buf -> {
+        var data = ByteBufUtil.writeCustomData(buf -> {
             for (var entry : holder.attachments.entrySet()) {
                 AttachmentType<?> type = entry.getKey();
                 @SuppressWarnings("unchecked")

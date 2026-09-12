@@ -151,4 +151,16 @@ public class RenderUtils {
             }
         }
     }
+
+    public static boolean forceBlend = false;
+
+    public static void enableBlend() {
+        forceBlend = true;
+        RenderSystem.enableBlend();
+    }
+
+    public static void disableBlend() {
+        forceBlend = false;
+        RenderSystem.disableBlend();
+    }
 }

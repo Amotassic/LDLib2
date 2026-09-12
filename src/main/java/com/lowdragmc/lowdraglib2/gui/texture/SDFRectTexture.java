@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.texture;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
+import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
@@ -139,7 +140,7 @@ public class SDFRectTexture extends TransformTexture {
         modelView.mulPoseMatrix(mat);
         RenderSystem.applyModelViewMatrix();
 
-        RenderSystem.enableBlend();
+        RenderUtils.enableBlend();
         RenderSystem.blendFuncSeparate(
                 GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
@@ -172,6 +173,7 @@ public class SDFRectTexture extends TransformTexture {
 
         modelView.popPose();
         RenderSystem.applyModelViewMatrix();
+        RenderUtils.disableBlend();
         pose.popPose();
     }
 }
