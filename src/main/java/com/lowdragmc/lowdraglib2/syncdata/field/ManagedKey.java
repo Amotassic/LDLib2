@@ -1,11 +1,10 @@
 package com.lowdragmc.lowdraglib2.syncdata.field;
 
-import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
+import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
 import lombok.Getter;
 import lombok.ToString;
-
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.*;

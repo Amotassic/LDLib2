@@ -1,10 +1,10 @@
 package com.lowdragmc.lowdraglib2.gui.ui.data;
 
+import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Data;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
 
 /**
  * Immutable 2D translation with per-axis px/percent support.
