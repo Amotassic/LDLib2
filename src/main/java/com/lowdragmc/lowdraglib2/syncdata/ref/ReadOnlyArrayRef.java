@@ -1,13 +1,12 @@
 package com.lowdragmc.lowdraglib2.syncdata.ref;
 
+import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.arraylike.ArrayAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.IReadOnlyAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.var.ArrayVar;
 import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import lombok.Getter;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-
 import org.jetbrains.annotations.Nullable;
 
 public final class ReadOnlyArrayRef<TYPE> extends ReadOnlyManagedRef<TYPE[]> implements IArrayRef<TYPE, TYPE[]> {

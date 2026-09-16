@@ -1,12 +1,13 @@
 package com.lowdragmc.lowdraglib2.math;
 
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
+import com.lowdragmc.lowdraglib2.utils.codec.StreamCodec;
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.util.ExtraCodecs;
 import org.joml.Vector4f;
 
 import java.util.Objects;
@@ -36,13 +37,14 @@ public class HDRColor {
      * {@code @ConfigHDR Vector4f} shape (a bare 4-float list whose {@code w} was the intensity and
      * which could not express alpha). Always <b>writes</b> the current shape.
      */
-    public static final Codec<HDRColor> CODEC = Codec.withAlternative(
+    public static final Codec<HDRColor> CODEC = Codec.either(
             RecordCodecBuilder.create(instance -> instance.group(
-                    ExtraCodecs.VECTOR4F.fieldOf("color").forGetter(HDRColor::toRawVector4f),
-                    Codec.FLOAT.optionalFieldOf("intensity", 1f).forGetter(HDRColor::getIntensity)
+                    LDLibExtraCodecs.VECTOR4F.fieldOf("color").forGetter(o -> ((HDRColor) o).toRawVector4f()),
+                    Codec.FLOAT.optionalFieldOf("intensity", 1f).forGetter(o -> ((HDRColor) o).getIntensity())
             ).apply(instance, HDRColor::new)),
-            ExtraCodecs.VECTOR4F,
-            legacy -> new HDRColor(legacy.x, legacy.y, legacy.z, 1f, legacy.w));
+            LDLibExtraCodecs.VECTOR4F
+    ).xmap(either -> (HDRColor) either.map(v -> v,
+            legacy -> new HDRColor(legacy.x, legacy.y, legacy.z, 1f, legacy.w)), Either::left);
 
     public static final StreamCodec<ByteBuf, HDRColor> STREAM_CODEC = StreamCodec.of(
             (byteBuf, color) -> {
@@ -177,7 +179,7 @@ public class HDRColor {
     }
 
     private static int round255(float value) {
-        return Math.clamp(Math.round(value * 255f), 0, 255);
+        return Math.max(Math.min(Math.round(value * 255f), 255), 0);
     }
 
     public HDRColor copy() {

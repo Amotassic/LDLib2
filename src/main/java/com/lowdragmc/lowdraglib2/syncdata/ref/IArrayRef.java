@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib2.syncdata.ref;
 
+import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.arraylike.IArrayLikeAccessor;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-
 import org.jetbrains.annotations.Nullable;
+
 import java.lang.reflect.Array;
 
 /**

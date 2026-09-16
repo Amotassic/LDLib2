@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.direct;
 
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
+import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.ref.DirectRef;
@@ -8,12 +10,11 @@ import com.lowdragmc.lowdraglib2.syncdata.ref.MutableDirectRef;
 import com.lowdragmc.lowdraglib2.syncdata.ref.UniqueDirectRef;
 import com.lowdragmc.lowdraglib2.syncdata.var.FieldVar;
 import com.lowdragmc.lowdraglib2.syncdata.var.IVar;
+import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
-import com.mojang.serialization.JavaOps;
 import lombok.Getter;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.nbt.NbtOps;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,12 +56,12 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
 
     @Override
     public <T> T readDirectVar(DynamicOps<T> op, IVar<TYPE> var) {
-        return codec.encodeStart(op, var.value()).getOrThrow();
+        return LDLibExtraCodecs.getOrThrow(codec.encodeStart(op, var.value()));
     }
 
     @Override
     public <T> void writeDirectVar(DynamicOps<T> op, IVar<TYPE> var, T payload) {
-        var.set(codec.parse(op, payload).getOrThrow());
+        var.set(LDLibExtraCodecs.getOrThrow(codec.parse(op, payload)));
     }
 
     @Override
@@ -118,13 +119,18 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
             return this;
         }
 
+        public Builder<TYPE> streamCodec(com.lowdragmc.lowdraglib2.utils.codec.StreamCodec<? super RegistryFriendlyByteBuf, TYPE> streamCodec) {
+            this.streamCodec = streamCodec;
+            return this;
+        }
+
         /**
-         * Use the codec to mark the value. This will use the {@link JavaOps} to generate the mark.
+         * Use the codec to mark the value in NBT form.
          */
         public Builder<TYPE> codecMark() {
-            this.markFunction = new IMarkFunction.Simple<>(
-                    value -> codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow(),
-                    (mark, value) -> !Objects.equals(mark, codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow()));
+            this.markFunction = new Simple<>(
+                    value -> LDLibExtraCodecs.getOrThrow(codec.encodeStart(Platform.registryOps(NbtOps.INSTANCE, Platform.getFrozenRegistry()), value)),
+                    (mark, value) -> !Objects.equals(mark, LDLibExtraCodecs.getOrThrow(codec.encodeStart(Platform.registryOps(NbtOps.INSTANCE, Platform.getFrozenRegistry()), value))));
             return this;
         }
 
@@ -135,7 +141,7 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
          * @param managedMarkFunction the function to get the mark from the value.
          */
         public Builder<TYPE> copyMark(Function<TYPE, TYPE> managedMarkFunction) {
-            this.markFunction = new IMarkFunction.Simple<>(managedMarkFunction, (a, b) -> !Objects.equals(a, b));
+            this.markFunction = new Simple<>(managedMarkFunction, (a, b) -> !Objects.equals(a, b));
             return this;
         }
 
@@ -146,7 +152,7 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
          * @param <MARK> the type of the mark.
          */
         public <MARK> Builder<TYPE> customMark(Function<TYPE, MARK> managedMarkFunction, BiPredicate<MARK, TYPE> areEqualFunction) {
-            this.markFunction = new IMarkFunction.Simple<>(managedMarkFunction, (a, b) -> !areEqualFunction.test(a, b));
+            this.markFunction = new Simple<>(managedMarkFunction, (a, b) -> !areEqualFunction.test(a, b));
             return this;
         }
 

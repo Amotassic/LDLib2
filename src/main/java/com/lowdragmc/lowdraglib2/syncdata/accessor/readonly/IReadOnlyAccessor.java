@@ -1,12 +1,12 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.readonly;
 
+import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
-import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import com.lowdragmc.lowdraglib2.syncdata.ref.ReadOnlyRef;
+import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import com.mojang.serialization.DynamicOps;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;

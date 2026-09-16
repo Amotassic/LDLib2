@@ -1,13 +1,13 @@
 package com.lowdragmc.lowdraglib2.editor.ui;
 
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -21,9 +21,9 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.nbt.CompoundTag;
 import org.appliedenergistics.yoga.YogaEdge;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
-import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;
@@ -51,7 +51,7 @@ public class SplittableWindow extends UIElement {
             PropertyRegistry.MAX_PERCENTAGE.addListener(SplitStyle::onPropertyChanged);
         }
 
-        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @org.jetbrains.annotations.Nullable T oldValue, @org.jetbrains.annotations.Nullable T newValue) {
+        private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
             if (element instanceof SplittableWindow splittableWindow) {
                 splittableWindow.onSplitStyleChanged();
             }
@@ -98,7 +98,7 @@ public class SplittableWindow extends UIElement {
     protected boolean immortal = false;
     /**
      * Optional stable identifier so this window can be located after a layout reload.
-     * Used by {@link com.lowdragmc.lowdraglib2.editor.ui.Editor} to rebind named anchor windows.
+     * Used by {@link Editor} to rebind named anchor windows.
      */
     @Nullable @Getter @Setter
     protected String anchorId;

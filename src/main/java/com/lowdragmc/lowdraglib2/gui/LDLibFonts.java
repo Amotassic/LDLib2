@@ -14,8 +14,8 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.function.Supplier;
 
@@ -33,11 +33,12 @@ public final class LDLibFonts {
      */
     @OnlyIn(Dist.CLIENT)
     public static Font font() {
-        return LDLibClientConfig.isSmoothFont() ? LDFontManager.INSTANCE.font() : Minecraft.getInstance().font;
+        // todo LDFont无法正常渲染
+        return /*LDLibClientConfig.isSmoothFont() ? LDFontManager.INSTANCE.font() : */Minecraft.getInstance().font;
     }
 
     /**
-     * Draws text the way {@link net.minecraft.client.gui.GuiGraphics#drawString} does, but reusing the cached
+     * Draws text the way {@link GuiGraphics#drawString} does, but reusing the cached
      * glyph layout when possible so the text is not walked again every frame.
      * <p>
      * Prefer this overload when a {@link Component} is at hand: components compare by value, so a caller that
