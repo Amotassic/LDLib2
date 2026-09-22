@@ -5,13 +5,13 @@ import java.util.Map;
 public class ManagedHolderVar<T> implements IVar<T> {
     private static final Map<Class<?>, Class<?>> PRIMITIVE_TO_WRAPPER = Map.of(
         int.class, Integer.class,
-        long.class, java.lang.Long.class,
-        float.class, java.lang.Float.class,
-        double.class, java.lang.Double.class,
-        boolean.class, java.lang.Boolean.class,
-        byte.class, java.lang.Byte.class,
+        long.class, Long.class,
+        float.class, Float.class,
+        double.class, Double.class,
+        boolean.class, Boolean.class,
+        byte.class, Byte.class,
         char.class, Character.class,
-        short.class, java.lang.Short.class
+        short.class, Short.class
     );
 
     private T value;

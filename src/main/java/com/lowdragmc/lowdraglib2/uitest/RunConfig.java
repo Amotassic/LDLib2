@@ -181,7 +181,7 @@ public final class RunConfig {
      * the control channel, and the MP scenario collection reads it from there, not from here. The
      * watchdog is more generous than solo because three game processes share the machine.
      */
-    static RunConfig forMultiProcess(java.nio.file.Path outDir) {
+    static RunConfig forMultiProcess(Path outDir) {
         // Headless is a property of the machine, not of the run, so every client of a multi-process
         // run inherits it from the same system property the orchestrator passed down.
         var headless = Boolean.getBoolean(PROP_HEADLESS);

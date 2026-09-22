@@ -4,10 +4,10 @@ import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -21,10 +21,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import org.appliedenergistics.yoga.*;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
-import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -130,6 +129,7 @@ public class Menu<K, T> extends UIElement {
     protected ITreeNode<K, T> openedNode;
     @Nullable
     protected Menu<K, T> opened;
+    protected boolean rootPopup;
 
     public Menu(ITreeNode<K, T> root) {
         this(root, (key) -> new TextElement().setText(key.toString()));
@@ -145,6 +145,7 @@ public class Menu<K, T> extends UIElement {
         getLayout().minWidth(120);
         getStyle().backgroundTexture(Sprites.RECT_SOLID);
         getStyle().zIndex(100);
+        setOverflowVisible(true);
         setFocusable(true);
         addEventListener(UIEvents.BLUR, this::onBlur, true);
 
@@ -158,22 +159,22 @@ public class Menu<K, T> extends UIElement {
     }
 
     protected void onBlur(UIEvent event) {
-        if (event.relatedTarget != null && this.isAncestorOf(event.relatedTarget)) { // focus on children
+        if (event.relatedTarget != null && isInMenuTree(event.relatedTarget)) { // focus on children or opened submenus
             return;
         }
 
         if (event.target == this) { // lose focus
-            if (isSelfOrChildHover() && event.relatedTarget == null) {
+            if (isSelfOrOpenedMenuHover() && event.relatedTarget == null) {
                 focus();
             } else {
-                if (parentMenu != null && getParent() != null && getParent().isSelfOrChildHover()) {
+                if (parentMenu != null && parentMenu.isSelfOrOpenedMenuHover()) {
                     focus();
                 } else if(autoClose) {
                     close();
                 }
             }
         } else { // child lose focus
-            if (event.relatedTarget == null && isSelfOrChildHover()) {
+            if (event.relatedTarget == null && isSelfOrOpenedMenuHover()) {
                 focus();
             } else {
                 if(autoClose) {
@@ -204,7 +205,7 @@ public class Menu<K, T> extends UIElement {
             if (x < 0) {
                 layout(layout -> layout.left(getLayoutX() - x));
             } else if (x + width > screenWidth) {
-                if (x > width && parentMenu != null) {
+                if (x > width && parentMenu != null && !rootPopup) {
                     // move to the left first
                     layout(layout -> layout.left(0 - width));
                 } else {
@@ -217,9 +218,24 @@ public class Menu<K, T> extends UIElement {
     @Override
     protected void onAdded() {
         var mui = getModularUI();
-        if (mui != null) {
+        if (mui != null && !rootPopup) {
             mui.requestFocus(this);
         }
+    }
+
+    protected boolean isInMenuTree(@Nullable UIElement element) {
+        if (element == null) {
+            return false;
+        }
+        if (this == element || this.isAncestorOf(element)) {
+            return true;
+        }
+        return opened != null && opened.isInMenuTree(element);
+    }
+
+    protected boolean isSelfOrOpenedMenuHover() {
+        var mui = getModularUI();
+        return mui != null && isInMenuTree(mui.getLastHoveredElement());
     }
 
     public Menu<K, T> setUiProvider(UIElementProvider<K> uiProvider) {
@@ -235,6 +251,11 @@ public class Menu<K, T> extends UIElement {
     }
 
     public void close(){
+        if (opened != null) {
+            opened.close();
+            opened = null;
+            openedNode = null;
+        }
         if (this.getParent() != null) {
             this.getParent().removeChild(this);
         }
@@ -247,7 +268,8 @@ public class Menu<K, T> extends UIElement {
                 var container = new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.alignItems(AlignItems.CENTER);
-                }).style(style -> style.backgroundTexture(textureProvider.apply(child)))
+                }).setOverflowVisible(true)
+                        .style(style -> style.backgroundTexture(textureProvider.apply(child)))
                         .addChild(new UIElement().layout(layout -> {
                             layout.flex(1);
                         }).addChild(uiProvider.apply(child.getKey())))
@@ -260,6 +282,9 @@ public class Menu<K, T> extends UIElement {
                                     if (autoClose && closeOnClick) {
                                         close();
                                     }
+/*                                } else {
+                                    openChildMenu(e.currentElement, child);
+                                    e.stopPropagation();*/
                                 }
                             }
                         }).addEventListener(UIEvents.MOUSE_ENTER, e -> {
