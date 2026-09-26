@@ -2,15 +2,11 @@ package com.lowdragmc.lowdraglib2.networking;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.compat.network.ConnectionType;
 import com.lowdragmc.lowdraglib2.compat.network.IPayloadContext;
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
-import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.lowdragmc.lowdraglib2.compat.network.custom.CustomPacketPayload;
 import com.lowdragmc.lowdraglib2.networking.both.*;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -22,7 +18,7 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
-import net.neoforged.neoforge.network.payload.SyncAttachmentsPayload;
+import net.nikdo53.neobackports.io.StreamCodec;
 
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -55,28 +51,19 @@ public class LDLNetworking {
         register(id++, PacketModularUISync.class, PacketModularUISync.CODEC, PacketModularUISync::execute, Optional.empty());
 
         register(id++, PacketRPCPacket.class, PacketRPCPacket.CODEC, PacketRPCPacket::execute, Optional.empty());
-
-        register(id++, SyncAttachmentsPayload.class, SyncAttachmentsPayload.STREAM_CODEC, SyncAttachmentsPayload::execute, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
     }
 
     private static <MSG extends CustomPacketPayload> void register(
             int id,
             Class<MSG> type,
-            StreamCodec<RegistryFriendlyByteBuf, MSG> codec,
+            StreamCodec<MSG> codec,
             BiConsumer<MSG, IPayloadContext> handler,
             Optional<NetworkDirection> direction) {
         CHANNEL.registerMessage(id, type,
-                (message, buffer) -> codec.encode(wrap(buffer), message),
-                buffer -> codec.decode(wrap(buffer)),
+                codec::encode,
+                codec::decode,
                 (message, contextSupplier) -> handle(message, contextSupplier, handler),
                 direction);
-    }
-
-    private static RegistryFriendlyByteBuf wrap(FriendlyByteBuf buffer) {
-        if (buffer instanceof RegistryFriendlyByteBuf registryBuffer) {
-            return registryBuffer;
-        }
-        return new RegistryFriendlyByteBuf(buffer, Platform.getFrozenRegistry(), ConnectionType.NEOFORGE);
     }
 
     private static <MSG> void handle(MSG message, Supplier<NetworkEvent.Context> contextSupplier, BiConsumer<MSG, IPayloadContext> handler) {

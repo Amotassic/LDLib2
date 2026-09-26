@@ -198,14 +198,12 @@ public class TestSerialization implements IScreenTest {
                         ).layout(layout -> layout.flexDirection(FlexDirection.ROW)),
                         new UIElement().addChildren(
                                 new Button().setText("S buf").setOnClick(e -> {
-                                    serializedBuf = ByteBufUtil.writeCustomData(buf -> data.writeToBuff(buf), Platform.getFrozenRegistry());
+                                    serializedBuf = ByteBufUtil.writeCustomData(buf -> data.writeToBuff(buf));
                                     text.setText(serializedBuf.length + " bytes");
                                 }).layout(layout -> layout.flex(1)),
                                 new Button().setText("D buf").setOnClick(e -> {
                                     try {
-                                        ByteBufUtil.readCustomData(serializedBuf,
-                                                buf -> data.readFromBuff(buf),
-                                                Platform.getFrozenRegistry());
+                                        ByteBufUtil.readCustomData(serializedBuf, buf -> data.readFromBuff(buf));
                                     } catch (Exception ignored) {
                                     }
                                 }).layout(layout -> layout.flex(1))

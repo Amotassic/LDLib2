@@ -1,7 +1,5 @@
 package com.lowdragmc.lowdraglib2.integration.kjs.ui;
 
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
-import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -18,14 +16,13 @@ public class KJSPlayerUIMenuType {
     public static boolean openUI(ServerPlayer player, String id) {
         var event = new PlayerUIEventJS(player, id);
         UIEvents.PLAYER.post(ScriptType.SERVER, id, event);
-        NetworkHooks.openScreen(player, event, buffer -> event.writeClientSideData(null, LDMenuTypes.wrapMenuDataBuffer(buffer)));
+        NetworkHooks.openScreen(player, event, buffer -> event.writeClientSideData(null, buffer));
         return true;
     }
 
     public static ModularUIContainerMenu create(int windowId, Inventory inv, FriendlyByteBuf data) {
-        RegistryFriendlyByteBuf registryData = LDMenuTypes.wrapMenuDataBuffer(data);
         var player = inv.player;
-        var id = registryData.readUtf();
+        var id = data.readUtf();
         var event = new PlayerUIEventJS(player, id);
         UIEvents.PLAYER.post(ScriptType.CLIENT, id, event);
         return event.createMenu(windowId, inv, player);

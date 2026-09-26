@@ -2,12 +2,11 @@ package com.lowdragmc.lowdraglib2.math;
 
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
-import com.lowdragmc.lowdraglib2.utils.codec.StreamCodec;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import io.netty.buffer.ByteBuf;
 import lombok.Getter;
+import net.nikdo53.neobackports.io.StreamCodec;
 import org.joml.Vector4f;
 
 import java.util.Objects;
@@ -46,7 +45,7 @@ public class HDRColor {
     ).xmap(either -> (HDRColor) either.map(v -> v,
             legacy -> new HDRColor(legacy.x, legacy.y, legacy.z, 1f, legacy.w)), Either::left);
 
-    public static final StreamCodec<ByteBuf, HDRColor> STREAM_CODEC = StreamCodec.of(
+    public static final StreamCodec<HDRColor> STREAM_CODEC = StreamCodec.of(
             (byteBuf, color) -> {
                 byteBuf.writeFloat(color.r);
                 byteBuf.writeFloat(color.g);

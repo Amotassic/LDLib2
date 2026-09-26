@@ -1,11 +1,10 @@
 package com.lowdragmc.lowdraglib2.math;
 
-import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Data;
-import net.minecraft.network.FriendlyByteBuf;
+import net.nikdo53.neobackports.io.StreamCodec;
 
 import java.util.Objects;
 
@@ -22,7 +21,7 @@ public final class Range {
             LDLibExtraCodecs.NUMBER.fieldOf("b").forGetter(range -> range.b)
     ).apply(instance, Range::of));
 
-    public final static StreamCodec<FriendlyByteBuf, Range> STREAM_CODEC = StreamCodec.of(
+    public final static StreamCodec<Range> STREAM_CODEC = StreamCodec.of(
             (byteBuf, range) -> {
                 byteBuf.writeDoubleLE(range.a.doubleValue());
                 byteBuf.writeDoubleLE(range.a.doubleValue());

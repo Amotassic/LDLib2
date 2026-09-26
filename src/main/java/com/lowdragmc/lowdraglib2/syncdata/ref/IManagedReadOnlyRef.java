@@ -1,12 +1,12 @@
 package com.lowdragmc.lowdraglib2.syncdata.ref;
 
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.IManagedObjectAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.network.FriendlyByteBuf;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -118,7 +118,7 @@ public class IManagedReadOnlyRef extends ReadOnlyRef<IManaged> {
     }
 
     @Override
-    public void readReadOnlySyncToStream(RegistryFriendlyByteBuf buffer) {
+    public void readReadOnlySyncToStream(FriendlyByteBuf buffer) {
         var syncedFields = getManaged().getSyncStorage().getSyncFields();
         var changed = new BitSet();
         for (int i = 0; i < syncedFields.length; i++) {
@@ -137,7 +137,7 @@ public class IManagedReadOnlyRef extends ReadOnlyRef<IManaged> {
     }
 
     @Override
-    public void writeReadOnlySyncFromStream(RegistryFriendlyByteBuf buffer) {
+    public void writeReadOnlySyncFromStream(FriendlyByteBuf buffer) {
         var storage = getManaged().getSyncStorage();
         var syncedFields = storage.getSyncFields();
         var changed = BitSet.valueOf(buffer.readByteArray());

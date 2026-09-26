@@ -1,12 +1,11 @@
 package com.lowdragmc.lowdraglib2.gui.ui.event;
 
-import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import it.unimi.dsi.fastutil.Pair;
 import lombok.ToString;
-import net.minecraft.network.FriendlyByteBuf;
+import net.nikdo53.neobackports.io.StreamCodec;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -20,7 +19,7 @@ public class UIEvent {
             .comapFlatMap(type -> DataResult.success(UIEvent.create(type)), event -> event.type)
             .stable();
 
-    public final static StreamCodec<FriendlyByteBuf, UIEvent> STREAM_CODEC = StreamCodec.of(
+    public final static StreamCodec<UIEvent> STREAM_CODEC = StreamCodec.of(
             (byteBuf, event) -> {
                 byteBuf.writeUtf(event.type);
                 byteBuf.writeVarInt(event.button);

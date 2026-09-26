@@ -89,6 +89,9 @@ repositories {
             includeGroup "dev.latvian.apps"
         }
     }
+    maven {
+        url = 'https://nikdo53.github.io'
+    }
 }
 
 legacyForge {
@@ -189,7 +192,8 @@ tasks.named('sourcesJar') {
 }
 
 dependencies {
-    interfaceInjectionData project.files('src/main/resources/ldlib2-interfaceinjection.json')
+    jarJar(modImplementation("net.nikdo53:NeoBackports:${neobackports_version}"))
+    interfaceInjectionData("net.nikdo53:NeoBackports:${neobackports_version}")
 
     modImplementation("maven.modrinth:kotlin-for-forge:${kotlin_for_forge_version}") {
         transitive = false
@@ -246,7 +250,6 @@ dependencies {
     annotationProcessor("com.google.guava:guava:31.1-jre")
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:${mixinextras_version}"))
     implementation("io.github.llamalad7:mixinextras-forge:${mixinextras_version}")
-    jarJar("io.github.llamalad7:mixinextras-forge:${mixinextras_version}")
 
     implementation("org.lwjgl:lwjgl-freetype:3.3.3") { transitive = false }
 

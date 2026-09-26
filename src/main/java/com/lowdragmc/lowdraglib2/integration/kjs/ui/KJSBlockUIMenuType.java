@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.integration.kjs.ui;
 
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
-import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.rhino.util.HideFromJS;
@@ -24,16 +22,15 @@ public class KJSBlockUIMenuType {
         var blockstate = player.level().getBlockState(pos);
         var event = new BlockUIEventJS(player, pos, blockstate, id);
         UIEvents.BLOCK.post(ScriptType.SERVER, id, event);
-        NetworkHooks.openScreen(player, event, buffer -> event.writeClientSideData(null, LDMenuTypes.wrapMenuDataBuffer(buffer)));
+        NetworkHooks.openScreen(player, event, buffer -> event.writeClientSideData(null, buffer));
         return true;
     }
 
     public static ModularUIContainerMenu create(int windowId, Inventory inv, FriendlyByteBuf data) {
-        RegistryFriendlyByteBuf registryData = LDMenuTypes.wrapMenuDataBuffer(data);
         var player = inv.player;
-        var pos = registryData.readBlockPos();
-        var blockstate = BlockUIMenuType.BLOCK_STATE_STREAM_CODEC.decode(registryData);
-        var id = registryData.readUtf();
+        var pos = data.readBlockPos();
+        var blockstate = BlockUIMenuType.BLOCK_STATE_STREAM_CODEC.decode(data);
+        var id = data.readUtf();
         var event = new BlockUIEventJS(player, pos, blockstate, id);
         UIEvents.BLOCK.post(ScriptType.CLIENT, id, event);
         return event.createMenu(windowId, inv, player);
@@ -61,7 +58,7 @@ public class KJSBlockUIMenuType {
         }
 
         @HideFromJS
-        public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
+        public void writeClientSideData(AbstractContainerMenu menu, FriendlyByteBuf buffer) {
             buffer.writeBlockPos(pos);
             BlockUIMenuType.BLOCK_STATE_STREAM_CODEC.encode(buffer, blockState);
             super.writeClientSideData(menu, buffer);

@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.core.mixins.ui;
 
 import com.lowdragmc.lowdraglib2.gui.event.ContainerMenuEvent;
-import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
@@ -42,7 +41,7 @@ public abstract class MenuTypeMixin<T extends AbstractContainerMenu> {
         }
         if (menu instanceof IModularUIHolder holder) {
             if (extraData.isReadable()) {
-                holder.readInitialData(LDMenuTypes.wrapMenuDataBuffer(extraData));
+                holder.readInitialData(extraData);
             }
         }
     }

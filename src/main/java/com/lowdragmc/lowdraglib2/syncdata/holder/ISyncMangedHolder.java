@@ -56,7 +56,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
                         field.clearSyncDirty();
                     }
                 }
-            }, serverLevel.registryAccess());
+            });
             try {
                 server.executeIfPossible(() -> {
                     if (!Platform.serverSafe(server)) return;
@@ -153,7 +153,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
                     }
                 }
             }
-        }, registryAccess);
+        });
         readCustomSyncData(registryAccess, extra);
     }
 

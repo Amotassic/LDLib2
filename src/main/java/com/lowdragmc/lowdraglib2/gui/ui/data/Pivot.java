@@ -1,10 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui.data;
 
-import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.mojang.serialization.Codec;
 import lombok.Data;
 import net.minecraft.Util;
-import net.minecraft.network.FriendlyByteBuf;
+import net.nikdo53.neobackports.io.StreamCodec;
 
 import java.util.List;
 
@@ -15,7 +14,7 @@ public final class Pivot {
             pivot -> List.of(pivot.x, pivot.y)
     );
 
-    public final static StreamCodec<FriendlyByteBuf, Pivot> STREAM_CODEC = StreamCodec.of(
+    public final static StreamCodec<Pivot> STREAM_CODEC = StreamCodec.of(
             (byteBuf, pivot) -> {
                 byteBuf.writeFloat(pivot.x);
                 byteBuf.writeFloat(pivot.y);

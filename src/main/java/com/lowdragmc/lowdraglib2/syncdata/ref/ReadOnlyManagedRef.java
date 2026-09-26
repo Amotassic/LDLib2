@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.syncdata.ref;
 
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.compat.network.codec.ByteBufCodecs;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
@@ -11,6 +10,7 @@ import com.mojang.serialization.DynamicOps;
 import lombok.Getter;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.FriendlyByteBuf;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
@@ -82,7 +82,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
     }
 
     @Override
-    public final void readSyncToStream(RegistryFriendlyByteBuf buffer) {
+    public final void readSyncToStream(FriendlyByteBuf buffer) {
         if (isReadOnlyManaged()) {
             assert getReadOnlyVar().getManagedVar() != null;
             var value = readRaw();
@@ -98,12 +98,12 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
         }
     }
 
-    public void readReadOnlySyncToStream(RegistryFriendlyByteBuf buffer) {
+    public void readReadOnlySyncToStream(FriendlyByteBuf buffer) {
         super.readSyncToStream(buffer);
     }
 
     @Override
-    public final void writeSyncFromStream(RegistryFriendlyByteBuf buffer) {
+    public final void writeSyncFromStream(FriendlyByteBuf buffer) {
         if (isReadOnlyManaged()) {
             var field = getReadOnlyVar();
             assert field.getManagedVar() != null;
@@ -124,7 +124,7 @@ public abstract class ReadOnlyManagedRef<TYPE> extends Ref<TYPE> {
         }
     }
 
-    public void writeReadOnlySyncFromStream(RegistryFriendlyByteBuf buffer) {
+    public void writeReadOnlySyncFromStream(FriendlyByteBuf buffer) {
         super.writeSyncFromStream(buffer);
     }
 

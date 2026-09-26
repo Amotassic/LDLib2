@@ -2,14 +2,14 @@ package com.lowdragmc.lowdraglib2.networking.both;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.compat.network.IPayloadContext;
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
-import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.lowdragmc.lowdraglib2.compat.network.custom.CustomPacketPayload;
 import com.lowdragmc.lowdraglib2.gui.sync.IUISyncManagerHolder;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import lombok.NoArgsConstructor;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.nikdo53.neobackports.io.StreamCodec;
 
 import javax.annotation.Nonnull;
 
@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 public class PacketModularUISync implements CustomPacketPayload {
     public static final ResourceLocation ID = LDLib2.id("modular_ui_sync");
     public static final Type<PacketModularUISync> TYPE = new Type<>(ID);
-    public static final StreamCodec<RegistryFriendlyByteBuf, PacketModularUISync> CODEC = StreamCodec.ofMember(PacketModularUISync::write, PacketModularUISync::decode);
+    public static final StreamCodec<PacketModularUISync> CODEC = StreamCodec.ofMember(PacketModularUISync::write, PacketModularUISync::decode);
 
     private byte[] data;
 
@@ -28,11 +28,11 @@ public class PacketModularUISync implements CustomPacketPayload {
         this.data = data;
     }
 
-    public void write(RegistryFriendlyByteBuf buf) {
+    public void write(FriendlyByteBuf buf) {
         buf.writeByteArray(data);
     }
 
-    public static PacketModularUISync decode(RegistryFriendlyByteBuf buffer) {
+    public static PacketModularUISync decode(FriendlyByteBuf buffer) {
         var data = buffer.readByteArray();
         return new PacketModularUISync(data);
     }
@@ -51,8 +51,7 @@ public class PacketModularUISync implements CustomPacketPayload {
             var syncManager = syncManagerHolder.getSyncManager();
             if (syncManager == null) return;
             ByteBufUtil.readCustomData(packet.data,
-                    syncManager::handleSyncPacket,
-                    context.player().level().registryAccess());
+                    syncManager::handleSyncPacket);
         }
     }
 
@@ -62,8 +61,7 @@ public class PacketModularUISync implements CustomPacketPayload {
             var syncManager = syncManagerHolder.getSyncManager();
             if (syncManager == null) return;
             ByteBufUtil.readCustomData(packet.data,
-                    syncManager::handleSyncPacket,
-                    context.player().level().registryAccess());
+                    syncManager::handleSyncPacket);
         }
     }
 

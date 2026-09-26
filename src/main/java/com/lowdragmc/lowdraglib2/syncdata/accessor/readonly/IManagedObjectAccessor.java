@@ -1,12 +1,12 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.readonly;
 
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IManagedReadOnlyRef;
 import com.lowdragmc.lowdraglib2.syncdata.var.ReadOnlyVar;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.network.FriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -29,12 +29,12 @@ public class IManagedObjectAccessor implements IReadOnlyAccessor<IManaged>, IMar
     }
 
     @Override
-    public void readReadOnlyValueToStream(RegistryFriendlyByteBuf buffer, @NotNull IManaged value) {
+    public void readReadOnlyValueToStream(FriendlyByteBuf buffer, @NotNull IManaged value) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
-    public void writeReadOnlyValueFromStream(RegistryFriendlyByteBuf buffer, @NotNull IManaged value) {
+    public void writeReadOnlyValueFromStream(FriendlyByteBuf buffer, @NotNull IManaged value) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

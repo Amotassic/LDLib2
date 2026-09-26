@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.FriendlyByteBuf;
@@ -74,8 +73,7 @@ public class PlayerUIMenuType {
     }
 
     public static ModularUIContainerMenu create(int windowId, Inventory inv, FriendlyByteBuf data) {
-        RegistryFriendlyByteBuf registryData = LDMenuTypes.wrapMenuDataBuffer(data);
-        var id = registryData.readResourceLocation();
+        var id = data.readResourceLocation();
         LDLib2.LOGGER.info("Creating LDLib2 player UI menu {} for {} on {}", id, inv.player.getName().getString(),
                 inv.player.level().isClientSide ? "client" : "server");
         var holderFactory = UI_HOLDERS.get(id);

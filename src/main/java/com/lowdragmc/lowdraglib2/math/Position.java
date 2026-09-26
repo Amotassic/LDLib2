@@ -1,12 +1,11 @@
 package com.lowdragmc.lowdraglib2.math;
 
 import com.google.common.base.MoreObjects;
-import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.mojang.serialization.Codec;
 import lombok.Data;
 import net.minecraft.Util;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.phys.Vec2;
+import net.nikdo53.neobackports.io.StreamCodec;
 import org.joml.Vector2f;
 
 import java.util.List;
@@ -19,7 +18,7 @@ public final class Position {
             position -> List.of(position.x, position.y)
     );
 
-    public final static StreamCodec<FriendlyByteBuf, Position> STREAM_CODEC = StreamCodec.of(
+    public final static StreamCodec<Position> STREAM_CODEC = StreamCodec.of(
             (byteBuf, position) -> {
                 byteBuf.writeVarInt(position.x);
                 byteBuf.writeVarInt(position.y);

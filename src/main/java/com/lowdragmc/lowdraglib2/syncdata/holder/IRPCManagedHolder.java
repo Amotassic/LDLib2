@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.holder;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.compat.network.custom.CustomPacketPayload;
 import com.lowdragmc.lowdraglib2.networking.LDLNetworking;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
@@ -40,7 +39,7 @@ public interface IRPCManagedHolder extends IManagedHolder {
             buf.writeVarInt(index);
             buf.writeUtf(methodName);
             rpcMethod.serializeArgs(buf, args);
-        }, Platform.getFrozenRegistry());
+        });
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -75,7 +74,7 @@ public interface IRPCManagedHolder extends IManagedHolder {
                     LDLib2.LOGGER.error("Error invoking RPC method: {}, which is sent by {}", methodName, sender, e);
                 }
             }
-        }, Platform.getFrozenRegistry());
+        });
 
     }
 }

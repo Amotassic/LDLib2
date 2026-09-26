@@ -1,16 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.factory;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.compat.network.ConnectionType;
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.editor.ui.EditorWindow;
 import com.lowdragmc.lowdraglib2.gui.editor.UIEditor;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.integration.kjs.ui.LDKJSMenuTypes;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -45,12 +41,5 @@ public final class LDMenuTypes {
             LDKJSMenuTypes.init();
         }
         MENUS.register(eventBus);
-    }
-
-    public static RegistryFriendlyByteBuf wrapMenuDataBuffer(FriendlyByteBuf buffer) {
-        if (buffer instanceof RegistryFriendlyByteBuf registryBuffer) {
-            return registryBuffer;
-        }
-        return new RegistryFriendlyByteBuf(buffer, Platform.getFrozenRegistry(), ConnectionType.FORGE);
     }
 }

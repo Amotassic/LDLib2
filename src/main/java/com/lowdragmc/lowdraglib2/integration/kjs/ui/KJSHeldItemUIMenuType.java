@@ -1,8 +1,6 @@
 package com.lowdragmc.lowdraglib2.integration.kjs.ui;
 
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.compat.network.codec.ByteBufCodecs;
-import com.lowdragmc.lowdraglib2.gui.factory.LDMenuTypes;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -23,16 +21,15 @@ public class KJSHeldItemUIMenuType {
         var heldItem = player.getItemInHand(hand);
         var event = new ItemUIEventJS(player, hand, heldItem, id);
         UIEvents.ITEM.post(ScriptType.SERVER, id, event);
-        NetworkHooks.openScreen(player, event, buffer -> event.writeClientSideData(null, LDMenuTypes.wrapMenuDataBuffer(buffer)));
+        NetworkHooks.openScreen(player, event, buffer -> event.writeClientSideData(null, buffer));
         return true;
     }
 
     public static ModularUIContainerMenu create(int windowId, Inventory inv, FriendlyByteBuf data) {
-        RegistryFriendlyByteBuf registryData = LDMenuTypes.wrapMenuDataBuffer(data);
         var player = inv.player;
-        var hand = registryData.readEnum(InteractionHand.class);
-        var itemstack = ByteBufCodecs.OPTIONAL_ITEM_STACK.decode(registryData);
-        var id = registryData.readUtf();
+        var hand = data.readEnum(InteractionHand.class);
+        var itemstack = ByteBufCodecs.OPTIONAL_ITEM_STACK.decode(data);
+        var id = data.readUtf();
         var event = new ItemUIEventJS(player, hand, itemstack, id);
         UIEvents.ITEM.post(ScriptType.CLIENT, id, event);
         return event.createMenu(windowId, inv, player);
@@ -59,7 +56,7 @@ public class KJSHeldItemUIMenuType {
             return LDKJSMenuTypes.HELD_ITEM_UI.get();
         }
 
-        public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
+        public void writeClientSideData(AbstractContainerMenu menu, FriendlyByteBuf buffer) {
             buffer.writeEnum(hand);
             ByteBufCodecs.OPTIONAL_ITEM_STACK.encode(buffer, itemStack);
             super.writeClientSideData(menu, buffer);

@@ -1,7 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.maplike;
 
 import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.compat.network.RegistryFriendlyByteBuf;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.IDirectAccessor;
@@ -12,6 +11,7 @@ import com.lowdragmc.lowdraglib2.utils.LDLibExtraCodecs;
 import com.mojang.serialization.DynamicOps;
 import lombok.Getter;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.FriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -91,7 +91,6 @@ public class MapAccessor<K, V> implements
             return;
         }
 
-        @SuppressWarnings("unchecked")
         IReadOnlyAccessor<V> roVAccessor = vDirect ? null : (IReadOnlyAccessor<V>) valueAccessor;
 
         // K direct + V read-only: support auto-fabrication of fresh V instances when structure differs.
@@ -163,7 +162,7 @@ public class MapAccessor<K, V> implements
     // ---------- Network buffer serialization ----------
 
     @Override
-    public void readReadOnlyValueToStream(RegistryFriendlyByteBuf buffer, @NotNull Map<K, V> value) {
+    public void readReadOnlyValueToStream(FriendlyByteBuf buffer, @NotNull Map<K, V> value) {
         buffer.writeVarInt(value.size());
         for (var entry : value.entrySet()) {
             writeChildToStream(buffer, keyAccessor, entry.getKey(), "key");
@@ -172,7 +171,7 @@ public class MapAccessor<K, V> implements
     }
 
     @Override
-    public void writeReadOnlyValueFromStream(RegistryFriendlyByteBuf buffer, @NotNull Map<K, V> value) {
+    public void writeReadOnlyValueFromStream(FriendlyByteBuf buffer, @NotNull Map<K, V> value) {
         int size = buffer.readVarInt();
 
         boolean kDirect = keyAccessor instanceof IDirectAccessor;
@@ -198,7 +197,6 @@ public class MapAccessor<K, V> implements
             // K direct, V read-only: diff-and-rebuild with auto-fabrication.
             // Existing V instances whose K is still in the stream are mutated in place; entries
             // whose K disappeared are dropped; entries whose K is new get a fabricated V.
-            @SuppressWarnings("unchecked")
             IReadOnlyAccessor<V> roVAccessor = (IReadOnlyAccessor<V>) valueAccessor;
             @SuppressWarnings("unchecked")
             Supplier<V> vFabricator = (Supplier<V>) TypeFabricator.fabricator(valueType);
@@ -233,7 +231,6 @@ public class MapAccessor<K, V> implements
         // K read-only: byte-level lookup is impractical, so use order-based pairing.
         // Caller is responsible for deterministic iteration order (LinkedHashMap/TreeMap, or a
         // @ReadOnlyManaged deserializeUid that inserts keys in the same order both sides observe).
-        @SuppressWarnings("unchecked")
         IReadOnlyAccessor<K> roKAccessor = (IReadOnlyAccessor<K>) keyAccessor;
         var iter = value.entrySet().iterator();
         for (int i = 0; i < size; i++) {
@@ -252,7 +249,6 @@ public class MapAccessor<K, V> implements
                 if (existingV == null) {
                     throw new IllegalArgumentException("Null existing read-only V in map at position " + i);
                 }
-                @SuppressWarnings("unchecked")
                 IReadOnlyAccessor<V> roVAccessor = (IReadOnlyAccessor<V>) valueAccessor;
                 roVAccessor.writeReadOnlyValueFromStream(buffer, existingV);
             }
@@ -331,7 +327,7 @@ public class MapAccessor<K, V> implements
         return null;
     }
 
-    private void writeChildToStream(RegistryFriendlyByteBuf buffer, IAccessor<?> accessor, Object obj, String role) {
+    private void writeChildToStream(FriendlyByteBuf buffer, IAccessor<?> accessor, Object obj, String role) {
         if (accessor instanceof IDirectAccessor directAccessor) {
             if (obj == null) {
                 buffer.writeBoolean(true);
@@ -351,7 +347,7 @@ public class MapAccessor<K, V> implements
         throw new IllegalArgumentException("Child accessor not managed for map " + role + ": " + accessor);
     }
 
-    private <X> X readChildFromStreamForCreate(RegistryFriendlyByteBuf buffer, IAccessor<?> accessor, Class<?> type, String role) {
+    private <X> X readChildFromStreamForCreate(FriendlyByteBuf buffer, IAccessor<?> accessor, Class<?> type, String role) {
         if (accessor instanceof IDirectAccessor directAccessor) {
             if (buffer.readBoolean()) return null;
             var holder = ManagedHolderVar.ofNull(type);

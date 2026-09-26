@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.compat.network.chat.ComponentSerialization;
 import com.lowdragmc.lowdraglib2.compat.network.codec.ByteBufCodecs;
-import com.lowdragmc.lowdraglib2.compat.network.codec.StreamCodec;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
@@ -51,6 +50,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.fluids.FluidStack;
+import net.nikdo53.neobackports.io.StreamCodec;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
@@ -259,7 +259,7 @@ public class AccessorRegistries {
                 .build());
         registerAccessor(CustomDirectAccessor.builder(BlockState.class)
                 .codec(BlockState.CODEC)
-                .streamCodec(ByteBufCodecs.fromCodecWithRegistries(BlockState.CODEC))
+                .streamCodec(ByteBufCodecs.fromCodec(BlockState.CODEC))
                 .build());
         registerAccessor(CustomDirectAccessor.builder(UIEvent.class)
                 .codec(UIEvent.CODEC)
