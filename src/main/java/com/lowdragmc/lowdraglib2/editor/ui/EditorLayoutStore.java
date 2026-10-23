@@ -9,11 +9,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Persists {@link EditorLayout} snapshots per {@code ProjectType.name} into the user's game directory.
@@ -80,7 +76,7 @@ public final class EditorLayoutStore {
                 });
                 tag.put(FLOATING_BOUNDS_KEY, list);
             }
-            NbtIo.write(tag, getFile(projectTypeName).toPath());
+            NbtIo.write(tag, getFile(projectTypeName));
         } catch (Exception ignored) {}
     }
 
@@ -130,7 +126,7 @@ public final class EditorLayoutStore {
         var file = getFile(projectTypeName);
         if (!file.exists()) return Optional.empty();
         try {
-            return Optional.ofNullable(NbtIo.read(file.toPath()));
+            return Optional.ofNullable(NbtIo.read(file));
         } catch (Exception e) {
             return Optional.empty();
         }

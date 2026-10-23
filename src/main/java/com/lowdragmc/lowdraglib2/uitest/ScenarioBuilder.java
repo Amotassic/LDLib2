@@ -1,13 +1,12 @@
 package com.lowdragmc.lowdraglib2.uitest;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
-import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
+import com.lowdragmc.lowdraglib2.client.ClientEventListener;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -118,7 +117,7 @@ public final class ScenarioBuilder {
             if (pending.isEmpty()) {
                 pending.add(submit.apply(ctx));
             }
-            var future = pending.getFirst();
+            var future = pending.get(0);
             if (!future.isDone()) {
                 ctx.repeat(waitingFor);
                 return;
@@ -144,7 +143,7 @@ public final class ScenarioBuilder {
             if (pending.isEmpty()) {
                 pending.add(submit.apply(ctx));
             }
-            var future = pending.getFirst();
+            var future = pending.get(0);
             if (!future.isDone()) {
                 ctx.repeat(waitingFor + " (reading server)");
                 return;
@@ -931,8 +930,6 @@ public final class ScenarioBuilder {
     }
 
     private static long clientTick(TestContext ctx) {
-        return Minecraft.getInstance() instanceof MinecraftAccessor accessor
-                ? accessor.ldlib2$getClientTickCount()
-                : 0L;
+        return ClientEventListener.getClientTickCount();
     }
 }
