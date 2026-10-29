@@ -129,7 +129,7 @@ public abstract class WorldSceneRenderer {
     protected AtomicReference<CacheState> cacheState;
     protected int maxProgress;
     protected int progress;
-    protected Thread thread;
+    protected volatile Thread thread;
     @Getter
     protected ParticleManager particleManager;
     protected final Camera camera = new Camera();
@@ -230,6 +230,7 @@ public abstract class WorldSceneRenderer {
         final RandomSource randomSource = RandomSource.createNewThreadLocalInstance();
         // block phase
         int layerIndex = 0;
+        @Nullable ByteBufferBuilder currentByteBuffer;
         @Nullable BufferBuilder currentBuffer;
         int entryIndex = 0;
         @Nullable Iterator<BlockPos> blockIter;
@@ -252,12 +253,12 @@ public abstract class WorldSceneRenderer {
 
     public WorldSceneRenderer deleteCacheBuffer() {
         if (vertexBuffers != null) {
+            cancelCompile();
             for (int i = 0; i < RenderType.chunkBufferLayers().size(); ++i) {
                 if (this.vertexBuffers[i] != null) {
                     this.vertexBuffers[i].close();
                 }
             }
-            cancelCompile();
             this.vertexBuffers = null;
             this.vertexBuffersUsingMark = null;
         }
@@ -301,14 +302,8 @@ public abstract class WorldSceneRenderer {
                 Thread.currentThread().interrupt();
             }
         }
-        // Discard any in-flight sync cursor; the partially-filled BufferBuilder is dropped
-        // (its underlying ByteBuffer will be GC'd along with the state object).
-        if (syncCompileState != null && syncCompileState.currentBuffer != null) {
-            try {
-                MeshData leftover = syncCompileState.currentBuffer.build();
-                if (leftover != null) leftover.close();
-            } catch (Throwable ignored) {
-            }
+        if (syncCompileState != null && syncCompileState.currentByteBuffer != null) {
+            syncCompileState.currentByteBuffer.close();
         }
         syncCompileState = null;
     }
@@ -655,48 +650,72 @@ public abstract class WorldSceneRenderer {
     }
 
     private void startAsyncCompile(Minecraft mc, List<RenderType> layers) {
+        // The thread only uses these copies: cancelCompile waits just 200ms for it, so a cancelled
+        // compile can outlive deleteCacheBuffer nulling the fields, or a change to renderedBlocksMap.
+        var buffers = vertexBuffers;
+        var usingMarks = vertexBuffersUsingMark;
+        var entries = List.copyOf(renderedBlocksMap.values());
+        // Before the thread starts, or the next frame still sees NEED and starts a second compile.
+        cacheState.set(CacheState.COMPILING);
         thread = new Thread(() -> {
-            cacheState.set(CacheState.COMPILING);
             BlockRenderDispatcher blockrendererdispatcher = mc.getBlockRenderer();
             var randomSource = RandomSource.createNewThreadLocalInstance();
+            ModelBlockRenderer.enableCaching();
             try { // render the blocks in each layer
-                ModelBlockRenderer.enableCaching();
                 PoseStack matrixstack = new PoseStack();
                 for (int i = 0; i < layers.size(); i++) {
-                    if (Thread.interrupted())
-                        return;
                     RenderType layer = layers.get(i);
-                    BufferBuilder buffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()), VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
-                    renderedBlocksMap.forEach((key, entry) -> {
-                        renderBlocks(matrixstack, blockrendererdispatcher, layer, new VertexConsumerWrapper(buffer), entry.snapshot(), randomSource, entry.hook(), 0);
-                    });
-                    MeshData data = buffer.build();
-                    if (data == null) {
-                        vertexBuffersUsingMark[i] = false;
-                        continue;
-                    }
-
-                    vertexBuffersUsingMark[i] = true;
-                    var vertexBuffer = vertexBuffers[i];
-                    Runnable toUpload = () -> {
-                        if (!vertexBuffer.isInvalid()) {
-                            vertexBuffer.bind();
-                            vertexBuffer.upload(data);
-                            VertexBuffer.unbind();
+                    // native memory the GC never frees: closed here, or by the upload it is handed to
+                    var byteBuffer = new ByteBufferBuilder(layer.bufferSize());
+                    var handedToUpload = false;
+                    try {
+                        BufferBuilder buffer = new BufferBuilder(byteBuffer, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                        for (var entry : entries) {
+                            var wrapper = new VertexConsumerWrapper(buffer);
+                            for (BlockPos pos : entry.snapshot()) {
+                                // per block: a layer of a large scene, or any under a shader pack, outlasts the cancel's wait
+                                if (isCompileCancelled()) return;
+                                renderSingleBlock(matrixstack, blockrendererdispatcher, layer, wrapper, pos, entry.hook(), randomSource, 0);
+                                if (maxProgress > 0) {
+                                    progress++;
+                                }
+                            }
                         }
-                    };
-                    CompletableFuture.runAsync(toUpload, runnable -> {
-                        RenderSystem.recordRenderCall(runnable::run);
-                    });
+                        MeshData data = buffer.build();
+                        if (isCompileCancelled()) return;
+                        usingMarks[i] = data != null;
+                        if (data == null) continue;
+
+                        var vertexBuffer = buffers[i];
+                        Runnable toUpload = () -> {
+                            try {
+                                if (!vertexBuffer.isInvalid()) {
+                                    vertexBuffer.bind();
+                                    vertexBuffer.upload(data);
+                                    VertexBuffer.unbind();
+                                }
+                            } finally {
+                                byteBuffer.close();
+                            }
+                        };
+                        CompletableFuture.runAsync(toUpload, runnable -> {
+                            RenderSystem.recordRenderCall(runnable::run);
+                        });
+                        handedToUpload = true;
+                    } finally {
+                        if (!handedToUpload) {
+                            byteBuffer.close();
+                        }
+                    }
                 }
-                ModelBlockRenderer.clearCache();
             } finally {
+                ModelBlockRenderer.clearCache();
             }
             Set<BlockPos> poses = new HashSet<>();
-            renderedBlocksMap.forEach((key, entry) -> {
+            for (var entry : entries) {
                 for (BlockPos pos : entry.snapshot()) {
                     progress++;
-                    if (Thread.interrupted())
+                    if (isCompileCancelled())
                         return;
                     BlockEntity tile = world.getBlockEntity(pos);
                     if (tile != null) {
@@ -705,17 +724,22 @@ public abstract class WorldSceneRenderer {
                         }
                     }
                 }
-            });
-            if (Thread.interrupted())
+            }
+            if (isCompileCancelled())
                 return;
             tileEntities = poses;
-            if (thread != null) {
-                cacheState.set(CacheState.COMPILED);
-                thread = null;
-            }
+            cacheState.set(CacheState.COMPILED);
+            thread = null;
             maxProgress = -1;
-        });
+        }, "LDLib2 Scene Compile");
+        thread.setDaemon(true);
         thread.start();
+    }
+
+    /** On the compile thread: whether it was cancelled or replaced by a later compile. */
+    private boolean isCompileCancelled() {
+        var current = Thread.currentThread();
+        return thread != current || current.isInterrupted();
     }
 
     private void startSyncCompile(List<RenderType> layers) {
@@ -775,7 +799,8 @@ public abstract class WorldSceneRenderer {
         while (s.layerIndex < s.layers.size()) {
             RenderType layer = s.layers.get(s.layerIndex);
             if (s.currentBuffer == null) {
-                s.currentBuffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()), VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                s.currentByteBuffer = new ByteBufferBuilder(layer.bufferSize());
+                s.currentBuffer = new BufferBuilder(s.currentByteBuffer, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
                 s.entryIndex = 0;
                 s.blockIter = null;
             }
@@ -794,8 +819,13 @@ public abstract class WorldSceneRenderer {
                 s.entryIndex++;
             }
             // current layer is fully traversed — build + upload (we're on the render thread)
-            finalizeSyncLayer(s);
-            s.currentBuffer = null;
+            try {
+                finalizeSyncLayer(s);
+            } finally {
+                s.currentByteBuffer.close();
+                s.currentByteBuffer = null;
+                s.currentBuffer = null;
+            }
             s.layerIndex++;
         }
         return false;
