@@ -1,11 +1,11 @@
 package com.lowdragmc.lowdraglib2.client.font;
 
 import com.lowdragmc.lowdraglib2.client.LDLibClientConfig;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import it.unimi.dsi.fastutil.ints.Int2LongMap;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
@@ -135,7 +135,7 @@ public final class GlyphBucket {
         if (scaleX <= 0f || scaleY <= 0f) {
             return SDF;
         }
-        var guiScale = (float) Minecraft.getInstance().getWindow().getGuiScale();
+        var guiScale = (float) UISurface.current().guiScale();
 
         if (mode == LDLibClientConfig.FontRenderMode.AUTO) {
             // Rotated, skewed, non uniform and fractionally scaled text stays on the distance field: it scales

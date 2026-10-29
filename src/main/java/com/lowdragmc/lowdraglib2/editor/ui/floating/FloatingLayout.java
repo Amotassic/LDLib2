@@ -1,7 +1,9 @@
 package com.lowdragmc.lowdraglib2.editor.ui.floating;
 
 import com.lowdragmc.lowdraglib2.editor.ui.EditorLayout;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.OffscreenSurface;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +19,12 @@ import java.util.List;
  * file under different keys, and a file without the floating key simply restores no windows — which
  * is what every layout saved before this feature existed looks like.
  */
-public record FloatingLayout(int x, int y, int width, int height, EditorLayout layout) {
+public record FloatingLayout(int x, int y, int width, int height, EditorLayout layout, int guiScale) {
+
+    /** A window following the game's gui scale. */
+    public FloatingLayout(int x, int y, int width, int height, EditorLayout layout) {
+        this(x, y, width, height, layout, OffscreenSurface.FOLLOW_GAME);
+    }
 
     public CompoundTag serialize() {
         var tag = layout.serialize();
@@ -25,12 +32,14 @@ public record FloatingLayout(int x, int y, int width, int height, EditorLayout l
         tag.putInt("y", y);
         tag.putInt("width", width);
         tag.putInt("height", height);
+        tag.putInt("guiScale", guiScale);
         return tag;
     }
 
     public static FloatingLayout deserialize(CompoundTag tag) {
         return new FloatingLayout(tag.getInt("x"), tag.getInt("y"),
-                tag.getInt("width"), tag.getInt("height"), EditorLayout.deserialize(tag));
+                tag.getInt("width"), tag.getInt("height"), EditorLayout.deserialize(tag),
+                tag.contains("guiScale", Tag.TAG_INT) ? tag.getInt("guiScale") : OffscreenSurface.FOLLOW_GAME);
     }
 
     /**

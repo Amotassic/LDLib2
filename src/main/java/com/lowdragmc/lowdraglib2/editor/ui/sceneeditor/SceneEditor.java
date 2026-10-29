@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.math.Ray;
 import com.lowdragmc.lowdraglib2.math.ITransform;
@@ -313,10 +314,10 @@ public class SceneEditor extends UIElement implements IScene {
     public Optional<Vector2f> project(Vector3f pos) {
         var renderer = scene.getRenderer();
         if (renderer == null) return Optional.empty();
-        var window = Minecraft.getInstance().getWindow();
+        var surface = UISurface.of(getModularUI());
         var result = renderer.project(pos);
-        var x = result.x() * window.getGuiScaledWidth() / window.getWidth();
-        var y = (window.getHeight() - result.y()) * window.getGuiScaledHeight() / window.getHeight();
+        var x = result.x() * surface.guiScaledWidth() / surface.framebufferWidth();
+        var y = (surface.framebufferHeight() - result.y()) * surface.guiScaledHeight() / surface.framebufferHeight();
         return Optional.of(new Vector2f(x, y));
     }
 

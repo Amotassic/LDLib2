@@ -263,6 +263,7 @@ public class EditorWindow extends UIElement {
         maximizeWindow();
 
         var window = new EditorOsWindow(this);
+        appearance().ifPresent(appearance -> window.setGuiScale(appearance.getScreenScale()));
         var bounds = initialBounds();
         rehosting = true;
         try {

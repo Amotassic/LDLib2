@@ -22,6 +22,7 @@ import java.util.Optional;
 public final class EditorLayoutStore {
     private static final String FLOATING_KEY = "floating";
     private static final String FLOATING_BOUNDS_KEY = "floatingBounds";
+    private static final String FLOATING_SCALES_KEY = "floatingScales";
 
     private EditorLayoutStore() {}
 
@@ -58,6 +59,15 @@ public final class EditorLayoutStore {
      */
     public static void save(String projectTypeName, EditorLayout layout, List<FloatingLayout> floating,
                             Map<String, WindowBounds> floatingBounds) {
+        save(projectTypeName, layout, floating, floatingBounds, Map.of());
+    }
+
+    /**
+     * As {@link #save(String, EditorLayout, List, Map)}, plus the gui scale each floated view's window
+     * was last set to, kept for the same reason as the rectangles.
+     */
+    public static void save(String projectTypeName, EditorLayout layout, List<FloatingLayout> floating,
+                            Map<String, WindowBounds> floatingBounds, Map<String, Integer> floatingScales) {
         try {
             var tag = layout.serialize();
             if (!floating.isEmpty()) {
@@ -79,6 +89,11 @@ public final class EditorLayoutStore {
                     list.add(entry);
                 });
                 tag.put(FLOATING_BOUNDS_KEY, list);
+            }
+            if (!floatingScales.isEmpty()) {
+                var scales = new CompoundTag();
+                floatingScales.forEach(scales::putInt);
+                tag.put(FLOATING_SCALES_KEY, scales);
             }
             NbtIo.write(tag, getFile(projectTypeName).toPath());
         } catch (Exception ignored) {}
@@ -124,6 +139,20 @@ public final class EditorLayoutStore {
                     entry.getInt("width"), entry.getInt("height")));
         }
         return bounds;
+    }
+
+    /** The gui scale setting each floated view's window was last left at, keyed by view name. */
+    public static Map<String, Integer> loadFloatingScales(String projectTypeName) {
+        var tag = read(projectTypeName).orElse(null);
+        if (tag == null || !tag.contains(FLOATING_SCALES_KEY, Tag.TAG_COMPOUND)) return Map.of();
+        var saved = tag.getCompound(FLOATING_SCALES_KEY);
+        var scales = new LinkedHashMap<String, Integer>(saved.size());
+        for (var name : saved.getAllKeys()) {
+            if (saved.contains(name, Tag.TAG_INT)) {
+                scales.put(name, saved.getInt(name));
+            }
+        }
+        return scales;
     }
 
     private static Optional<CompoundTag> read(String projectTypeName) {
