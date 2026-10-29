@@ -41,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 public class EditorWindow extends UIElement {
@@ -78,6 +79,12 @@ public class EditorWindow extends UIElement {
      * calls {@link #onRemoved()} on the way out, which would tear down the editor just moved.
      */
     private boolean rehosting;
+    @Nullable
+    private BooleanSupplier gameWindowReopener;
+    /** Popping out maximizes the editor; this remembers it was restored before. */
+    private boolean restoreWhenBackInGameWindow;
+    /** Parked in the minimized map by a dock rather than by the player, so no "minimized" toast. */
+    private boolean dockingBack;
 
     public static EditorWindow openDefault(Supplier<Editor> editorCreator) {
         return open(DEFAULT_ID, editorCreator);
@@ -125,27 +132,49 @@ public class EditorWindow extends UIElement {
     public static EditorWindow open(ResourceLocation windowID, Supplier<Editor> editorCreator) {
         var editorWindow = MINIMIZED_WINDOWS.remove(windowID);
         if (editorWindow != null && LDLib2.isClient()) {
-            Minecraft.getInstance().getToasts().addToast(new SystemToast(
-                    new SystemToast.SystemToastId(1000L),
-                    Component.translatable("editor.minimized.title"),
-                    Component.translatable("editor.minimized.tips")
-            ));
-            if (editorWindow.currentEditor != null && LDLib2.isClient()) {
-                editorWindow.currentEditor.editorSettings.getSettings(AppearanceSettings.ID).ifPresent(settings -> {
-                    if (settings instanceof AppearanceSettings appearanceSettings) {
-                        var scale = appearanceSettings.getScreenScale();
-                        var minecraft = Minecraft.getInstance();
-                        var guiScale = minecraft.options.guiScale();
-                        if (guiScale.get() != scale) {
-                            guiScale.set(scale);
-                            minecraft.resizeDisplay();
-                        }
-                    }
-                });
+            if (editorWindow.dockingBack) {
+                editorWindow.dockingBack = false;
+            } else {
+                Minecraft.getInstance().getToasts().addToast(new SystemToast(
+                        new SystemToast.SystemToastId(1000L),
+                        Component.translatable("editor.minimized.title"),
+                        Component.translatable("editor.minimized.tips")
+                ));
             }
+            editorWindow.backInGameWindow();
             return editorWindow;
         }
         return new EditorWindow(windowID, editorCreator);
+    }
+
+    /**
+     * Makes {@link #dockIntoGameWindow()} bring this editor back by opening its menu again instead of
+     * showing it as a plain screen.
+     *
+     * <p>Set it on an editor that is opened through a menu: recipe viewers (JEI, REI, EMI) only attach
+     * to container screens, so docked into a plain screen it would lose them. The reopener must
+     * request the same menu and return whether it could; the menu's client side has to get the editor
+     * through {@link #open}, which is where the docked editor is parked in the meantime. If it returns
+     * {@code false}, or the editor has no {@link #windowID}, docking falls back to a plain screen.
+     */
+    public EditorWindow setGameWindowReopener(@Nullable BooleanSupplier reopener) {
+        this.gameWindowReopener = reopener;
+        return this;
+    }
+
+    private void backInGameWindow() {
+        appearance().map(AppearanceSettings::getScreenScale).filter(scale -> scale >= 0).ifPresent(scale -> {
+            var minecraft = Minecraft.getInstance();
+            var guiScale = minecraft.options.guiScale();
+            if (guiScale.get().intValue() != scale) {
+                guiScale.set(scale);
+                minecraft.resizeDisplay();
+            }
+        });
+        if (restoreWhenBackInGameWindow) {
+            restoreWhenBackInGameWindow = false;
+            retoreWindow();
+        }
     }
 
     public EditorWindow(Supplier<Editor> editorCreator) {
@@ -228,6 +257,7 @@ public class EditorWindow extends UIElement {
 
         var mui = getModularUI();
         var previousScreen = mui == null ? null : mui.getScreen();
+        var wasRestored = !maximized;
         // It owns the whole of its own window; a restored rectangle would be a window inside a window.
         maximizeWindow();
 
@@ -239,8 +269,12 @@ public class EditorWindow extends UIElement {
             // subtree, so a failure here leaves the editor where it was rather than homeless.
             if (!window.open(bounds.x(), bounds.y(), bounds.width(), bounds.height(), false)) {
                 _setOsWindowInternal(null);
+                if (wasRestored) {
+                    retoreWindow();
+                }
                 return false;
             }
+            restoreWhenBackInGameWindow = wasRestored;
             if (previousScreen != null) {
                 previousScreen.onClose();
             }
@@ -260,6 +294,8 @@ public class EditorWindow extends UIElement {
     public boolean dockIntoGameWindow() {
         if (osWindow == null) return false;
         var window = osWindow;
+        rememberPreferredHost(false);
+        if (reopenInGameWindow(window)) return true;
         rehosting = true;
         try {
             // The screen's init re-hosts the subtree; closing first would leave it with no host.
@@ -268,7 +304,21 @@ public class EditorWindow extends UIElement {
         } finally {
             rehosting = false;
         }
-        rememberPreferredHost(false);
+        backInGameWindow();
+        return true;
+    }
+
+    /** Parked like a minimize until the reopened menu takes it back through {@link #open}. */
+    private boolean reopenInGameWindow(EditorOsWindow window) {
+        if (gameWindowReopener == null || !canMinimize() || MINIMIZED_WINDOWS.containsKey(windowID)) return false;
+        MINIMIZED_WINDOWS.put(windowID, this);
+        dockingBack = true;
+        if (!gameWindowReopener.getAsBoolean()) {
+            MINIMIZED_WINDOWS.remove(windowID, this);
+            dockingBack = false;
+            return false;
+        }
+        window.close();
         return true;
     }
 
