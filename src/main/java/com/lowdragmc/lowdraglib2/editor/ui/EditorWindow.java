@@ -247,7 +247,8 @@ public class EditorWindow extends UIElement {
     }
 
     /**
-     * Moves this editor out of the game window into one of its own.
+     * Moves this editor out of the game window into one of its own, and remembers that as the host
+     * it prefers, as {@link #dockIntoGameWindow()} remembers the game window.
      *
      * @return {@code false} if no window could be opened, in which case nothing has moved
      */
@@ -283,6 +284,9 @@ public class EditorWindow extends UIElement {
         }
         // The scale was raised for an editor filling the screen; the player is looking at the HUD now.
         restoreGameGuiScale();
+        // Applying the settings moves the editor to the host they prefer; without this, one popped out
+        // from code would be pulled straight back.
+        rememberPreferredHost(true);
         return true;
     }
 
@@ -425,8 +429,8 @@ public class EditorWindow extends UIElement {
                 .setOnClick(e -> {
                     if (isInOsWindow()) {
                         dockIntoGameWindow();
-                    } else if (popOutToOsWindow()) {
-                        rememberPreferredHost(true);
+                    } else {
+                        popOutToOsWindow();
                     }
                 })
                 .addClass("__white_icon__")
