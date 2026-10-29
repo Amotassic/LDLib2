@@ -196,12 +196,16 @@ public class ModularUIWindow implements OsWindowHost {
      * @param decorated whether the OS draws the frame. Leave this false unless you know you want the
      *                  platform's modal move/resize loop and the game freeze that comes with it.
      * @return {@code false} if no second window could be opened, in which case the caller should host
-     *         the UI in the game window instead
+     *         the UI's root in the game window instead. This window is spent then: its own
+     *         {@link ModularUI} has been disposed, as it would otherwise be held forever by the style
+     *         manager with nothing left to close it.
      */
     public boolean open(int x, int y, int width, int height, boolean decorated) {
         if (window != null) return true;
-        if (!OsWindowManager.isAvailable()) return false;
-        if (!OsWindowManager.open(this, title, width, height, decorated)) return false;
+        if (!OsWindowManager.isAvailable() || !OsWindowManager.open(this, title, width, height, decorated)) {
+            modularUI.getStyleEngine().dispose();
+            return false;
+        }
         var opened = window;
         if (opened == null) return false;
         if (x != Integer.MIN_VALUE && y != Integer.MIN_VALUE) {
@@ -257,6 +261,13 @@ public class ModularUIWindow implements OsWindowHost {
         modularUI.init(surface.guiScaledWidth(), surface.guiScaledHeight());
     }
 
+    /**
+     * Destroys the surface and tears the UI down, as closing a screen does.
+     *
+     * <p>A subclass that moves part of the tree elsewhere on its way out must do so before calling
+     * this, or that part is torn down too. A root already re-hosted in another {@link ModularUI} is
+     * left alone.
+     */
     @Override
     public void onDestroyed() {
         if (surface != null) {
@@ -265,6 +276,9 @@ public class ModularUIWindow implements OsWindowHost {
         }
         window = null;
         gesture = Gesture.NONE;
+        if (!modularUI.isRemoved()) {
+            modularUI.onRemoved();
+        }
     }
 
     public boolean isMaximized() {

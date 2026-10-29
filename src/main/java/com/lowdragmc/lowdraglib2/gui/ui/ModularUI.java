@@ -691,11 +691,17 @@ public class ModularUI {
     /**
      * Called when the UI is removed.
      * This method can be overridden to perform cleanup tasks.
+     * <p>
+     * The root element is only torn down if it still belongs to this UI: one that has been moved into
+     * another {@link ModularUI} (a screen, an OS window) lives on there.
      */
     public void onRemoved() {
         removed = true;
         EMBEDDED_UIS.remove(this);
-        ui.rootElement.onRemoved();
+        var owner = ui.rootElement.getModularUI();
+        if (owner == null || owner == this) {
+            ui.rootElement.onRemoved();
+        }
         styleEngine.dispose();
     }
 
