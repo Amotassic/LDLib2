@@ -30,11 +30,11 @@ public interface IPersistManagedHolder extends IManagedHolder {
         var customTag = new CompoundTag();
         saveCustomPersistedData(provider, customTag, forDrop);
 
-        if (!managedTag.isEmpty()) {
-            tag.put("managed", managedTag);
-        }
         if (!customTag.isEmpty()) {
             managedTag.put("custom", customTag);
+        }
+        if (!managedTag.isEmpty()) {
+            tag.put("managed", managedTag);
         }
     }
 
@@ -49,7 +49,7 @@ public interface IPersistManagedHolder extends IManagedHolder {
                 ref.writePersisted(ctx, data);
             }
         }
-        loadCustomPersistedData(provider, tag.getCompound("custom"));
+        loadCustomPersistedData(provider, managedTag.getCompound("custom"));
     }
 
 
