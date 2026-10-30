@@ -98,12 +98,18 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
 
     @Override
     public Object updateMark(@NotNull Object managedMark, @NotNull TYPE value) {
+        // a subclass may override areDifferent or obtainManagedMark, which the default goes through
+        if (getClass() != CustomDirectAccessor.class) return IMarkFunction.super.updateMark(managedMark, value);
         return markFunction == null ? IMarkFunction.lazy().updateMark(managedMark, value) : markFunction.updateMark(managedMark, value);
     }
 
     private record CodecMark<T>(Codec<T> codec) implements IMarkFunction<T, Object> {
+        // JavaOps encodes empty values as null, which updateMark returns for "unchanged"
+        private static final Object EMPTY = new Object();
+
         private Object encode(T value) {
-            return codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow();
+            var encoded = codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow();
+            return encoded == null ? EMPTY : encoded;
         }
 
         @Override

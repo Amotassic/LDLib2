@@ -4,14 +4,20 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.misc.FluidStorage;
 import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.CustomDirectAccessor;
+import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.INBTSerializableReadOnlyAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ManagedCodec;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -23,10 +29,12 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -42,6 +50,20 @@ import java.util.function.Consumer;
  */
 @GameTestHolder(LDLib2.MOD_ID)
 public class SyncChangeDetectionTest {
+
+    /**
+     * Hands its slots out through an override, so they can't be assumed to be the ones it saves.
+     */
+    public static class PassThroughItems extends ItemStackTransfer {
+        public PassThroughItems(int size) {
+            super(size);
+        }
+
+        @Override
+        public ItemStack getStackInSlot(int slot) {
+            return super.getStackInSlot(slot);
+        }
+    }
 
     public static class Probe extends SyncProbeHolder {
         @Persisted
@@ -122,6 +144,15 @@ public class SyncChangeDetectionTest {
         public final LockableItems lockableItems = new LockableItems(2);
         @Persisted
         @DescSynced
+        public final PassThroughItems passThroughItems = new PassThroughItems(2);
+        @Persisted
+        @DescSynced
+        public List<Direction> directions = new ArrayList<>(List.of(Direction.UP));
+        @Persisted
+        @DescSynced
+        public Map<Direction, Item> itemsBySide = new HashMap<>(Map.of(Direction.NORTH, Items.STONE));
+        @Persisted
+        @DescSynced
         public final LockableTank lockableTank = new LockableTank(1000);
         @Persisted
         @DescSynced
@@ -147,6 +178,7 @@ public class SyncChangeDetectionTest {
             items.setStackInSlot(1, new ItemStack(Items.GOLD_INGOT, 4));
             tank.fill(new FluidStack(Fluids.WATER, 200), IFluidHandler.FluidAction.EXECUTE);
             lockableItems.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 4));
+            passThroughItems.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 4));
             lockableTank.fill(new FluidStack(Fluids.WATER, 200), IFluidHandler.FluidAction.EXECUTE);
             itemList.getFirst().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 4));
         }
@@ -184,6 +216,7 @@ public class SyncChangeDetectionTest {
             Case.synced("BlockState assigned", "state", p -> p.state = Blocks.DIRT.defaultBlockState()),
             Case.synced("ItemStack assigned", "stack", p -> p.stack = new ItemStack(Items.DIAMOND)),
             Case.synced("ItemStack grown in place", "stack", p -> p.stack.grow(1)),
+            Case.synced("ItemStack renamed in place", "stack", p -> p.stack.set(DataComponents.CUSTOM_NAME, Component.literal("renamed"))),
             Case.synced("FluidStack grown in place", "fluid", p -> p.fluid.grow(10)),
             Case.synced("mutable BlockPos moved in place", "pos", p -> ((BlockPos.MutableBlockPos) p.pos).move(Direction.UP)),
             Case.synced("Vector3f changed in place", "vector", p -> p.vector.x = 5),
@@ -192,6 +225,10 @@ public class SyncChangeDetectionTest {
             Case.synced("ItemStack[] element grown in place", "stacks", p -> p.stacks[0].grow(1)),
             Case.synced("List<String> added to", "strings", p -> p.strings.add("b")),
             Case.synced("List<String> element set", "strings", p -> p.strings.set(0, "z")),
+            Case.synced("List<String> element set to null", "strings", p -> p.strings.set(0, null)),
+            Case.synced("List<Direction> element set", "directions", p -> p.directions.set(0, Direction.DOWN)),
+            Case.synced("Map<Direction, Item> value replaced", "itemsBySide", p -> p.itemsBySide.put(Direction.NORTH, Items.DIAMOND)),
+            Case.synced("Map<Direction, Item> key added", "itemsBySide", p -> p.itemsBySide.put(Direction.SOUTH, Items.APPLE)),
             Case.synced("List<Integer> element set", "integers", p -> p.integers.set(0, 2000)),
             Case.synced("List<BlockPos> added to", "positions", p -> p.positions.add(new BlockPos(4, 5, 6))),
             Case.synced("Map key added", "scores", p -> p.scores.put("b", 2)),
@@ -199,10 +236,14 @@ public class SyncChangeDetectionTest {
             Case.synced("@ManagedCodec list added to", "codecTags", p -> p.codecTags.add("b")),
             Case.synced("container slot set", "items", p -> p.items.setStackInSlot(2, new ItemStack(Items.DIAMOND, 3))),
             Case.synced("container stack grown in place", "items", p -> p.items.getStackInSlot(1).grow(1)),
+            Case.synced("container stack renamed in place", "items", p -> p.items.getStackInSlot(1).set(DataComponents.CUSTOM_NAME, Component.literal("renamed"))),
             Case.synced("container slot emptied", "items", p -> p.items.setStackInSlot(0, ItemStack.EMPTY)),
             Case.synced("container resized", "items", p -> p.items.setSize(5)),
             Case.synced("tank filled", "tank", p -> p.tank.fill(new FluidStack(Fluids.WATER, 100), IFluidHandler.FluidAction.EXECUTE)),
             Case.synced("tank fluid grown in place", "tank", p -> p.tank.getFluid().grow(10)),
+            Case.synced("tank fluid renamed in place", "tank", p -> p.tank.getFluid().set(DataComponents.CUSTOM_NAME, Component.literal("renamed"))),
+            Case.synced("container reading slots through an override: slot set", "passThroughItems", p -> p.passThroughItems.setStackInSlot(1, new ItemStack(Items.DIAMOND))),
+            Case.synced("container reading slots through an override: grown in place", "passThroughItems", p -> p.passThroughItems.getStackInSlot(0).grow(1)),
             Case.synced("tank drained empty", "tank", p -> p.tank.drain(1000, IFluidHandler.FluidAction.EXECUTE)),
             Case.synced("tank capacity changed", "tank", p -> p.tank.setCapacity(2000)),
             Case.synced("custom container slot set", "lockableItems", p -> p.lockableItems.setStackInSlot(1, new ItemStack(Items.DIAMOND))),
@@ -224,6 +265,7 @@ public class SyncChangeDetectionTest {
             Case.unchanged("BlockPos replaced by an equal copy", "pos", p -> p.pos = p.pos.immutable()),
             Case.unchanged("Vector3f replaced by an equal copy", "vector", p -> p.vector = new Vector3f(p.vector)),
             Case.unchanged("List<String> element set to an equal copy", "strings", p -> p.strings.set(0, new String(p.strings.get(0)))),
+            Case.unchanged("List<Direction> element set to the same value", "directions", p -> p.directions.set(0, Direction.UP)),
             Case.unchanged("container slot set to an equal stack", "items", p -> p.items.setStackInSlot(0, p.items.getStackInSlot(0).copy())),
             Case.unchanged("container in a List: slot set to an equal stack", "itemList", p -> p.itemList.getFirst().setStackInSlot(0, p.itemList.getFirst().getStackInSlot(0).copy())),
             Case.unchanged("INBTSerializable in a Map given an equal value", "nestedMap", p -> p.nestedMap.get("a").label = new String(p.nestedMap.get("a").label)),
@@ -365,6 +407,62 @@ public class SyncChangeDetectionTest {
         if (!(overridden.obtainManagedMark(new ArrayList<>(List.of("a"))) instanceof ArrayList<?>)) {
             failures.add("copyMark after codecMark did not replace it");
         }
+        report(helper, failures);
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    @SuppressWarnings("unchecked")
+    public static void subclassedAccessorsKeepTheirOwnComparison(GameTestHelper helper) {
+        var failures = new ArrayList<String>();
+        var listType = (Class<List<String>>) (Class<?>) List.class;
+        var alwaysChanged = new CustomDirectAccessor<>(listType, false, Codec.STRING.listOf(),
+                ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()), null) {
+            @Override
+            public boolean areDifferent(@NotNull Object managedMark, @NotNull List<String> value) {
+                return true;
+            }
+        };
+        var list = List.of("a");
+        if (alwaysChanged.updateMark(alwaysChanged.obtainManagedMark(list), list) == null) {
+            failures.add("the areDifferent of a subclass was passed over");
+        }
+
+        var version = new int[1];
+        var versioned = new INBTSerializableReadOnlyAccessor() {
+            @Override
+            public <T> T readReadOnlyValue(DynamicOps<T> op, @NotNull INBTSerializable<?> value) {
+                return op.createInt(version[0]);
+            }
+        };
+        var items = new ItemStackTransfer(1);
+        var mark = versioned.obtainManagedMark(items);
+        if (versioned.updateMark(mark, items) != null) failures.add("an unchanged value got a new mark");
+        version[0] = 1;
+        if (versioned.updateMark(mark, items) == null) failures.add("the readReadOnlyValue of a subclass was passed over");
+        report(helper, failures);
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void codecMarkNoticesAValueEncodedAsEmpty(GameTestHelper helper) {
+        var failures = new ArrayList<String>();
+        var blankIsEmpty = new Codec<String>() {
+            @Override
+            public <T> DataResult<T> encode(String input, DynamicOps<T> ops, T prefix) {
+                return DataResult.success(input.isEmpty() ? ops.empty() : ops.createString(input));
+            }
+
+            @Override
+            public <T> DataResult<Pair<String, T>> decode(DynamicOps<T> ops, T input) {
+                return DataResult.success(Pair.of(ops.getStringValue(input).result().orElse(""), input));
+            }
+        };
+        var accessor = CustomDirectAccessor.builder(String.class).codec(blankIsEmpty).streamCodec(ByteBufCodecs.STRING_UTF8).codecMark().build();
+        var mark = accessor.obtainManagedMark("a");
+        var emptyMark = accessor.updateMark(mark, "");
+        if (emptyMark == null || !accessor.areDifferent(mark, "")) failures.add("a value encoded as empty looked unchanged");
+        if (emptyMark != null && accessor.updateMark(emptyMark, "") != null) failures.add("an unchanged empty value got a new mark");
         report(helper, failures);
     }
 

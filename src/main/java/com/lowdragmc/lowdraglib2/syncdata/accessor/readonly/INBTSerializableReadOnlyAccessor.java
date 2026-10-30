@@ -4,7 +4,9 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.DelegatingOpsAccessor;
 import com.lowdragmc.lowdraglib2.misc.FluidStorage;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
+import com.lowdragmc.lowdraglib2.syncdata.utils.StackSnapshots;
 import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JavaOps;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtOps;
@@ -19,6 +21,8 @@ import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 @SuppressWarnings("unchecked")
 public class INBTSerializableReadOnlyAccessor implements IReadOnlyAccessor<INBTSerializable<?>>, IMarkFunction<INBTSerializable<?>, Object> {
 
@@ -27,7 +31,7 @@ public class INBTSerializableReadOnlyAccessor implements IReadOnlyAccessor<INBTS
      * {@code serializeNBT} writes, as long as the class still saves and reads its slots the way the base class does.
      */
     private enum Snapshot {
-        ITEMS, FLUID, SAVED_TAG
+        ITEMS, FLUID, SAVED_TAG, READ_VALUE
     }
 
     private record FluidMark(FluidStack fluid, int capacity) {}
@@ -54,7 +58,9 @@ public class INBTSerializableReadOnlyAccessor implements IReadOnlyAccessor<INBTS
     private static boolean declaredBy(Class<?> type, Class<?> owner, String name, Class<?>... parameters) {
         try {
             return type.getMethod(name, parameters).getDeclaringClass() == owner;
-        } catch (NoSuchMethodException e) {
+        } catch (NoSuchMethodException | LinkageError e) {
+            // looking a method up resolves every public signature of the class, which fails on a dedicated server
+            // when one mentions a client class
             return false;
         }
     }
@@ -64,28 +70,41 @@ public class INBTSerializableReadOnlyAccessor implements IReadOnlyAccessor<INBTS
         return INBTSerializable.class.isAssignableFrom(type);
     }
 
+    /**
+     * Subclasses may save or sync more than the base class does, so they keep comparing what
+     * {@link #readReadOnlyValue} returns, as before this accessor had marks of its own.
+     */
+    private Snapshot snapshotOf(INBTSerializable<?> value) {
+        return getClass() == INBTSerializableReadOnlyAccessor.class ? SNAPSHOTS.get(value.getClass()) : Snapshot.READ_VALUE;
+    }
+
+    private Object readValue(INBTSerializable<?> value) {
+        return readReadOnlyValue(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value);
+    }
+
     @Override
     public @NotNull Object obtainManagedMark(@NotNull INBTSerializable<?> value) {
-        return switch (SNAPSHOTS.get(value.getClass())) {
+        return switch (snapshotOf(value)) {
             case ITEMS -> {
                 var handler = (ItemStackHandler) value;
                 var stacks = new ItemStack[handler.getSlots()];
                 for (int i = 0; i < stacks.length; i++) {
-                    stacks[i] = handler.getStackInSlot(i).copy();
+                    stacks[i] = StackSnapshots.of(handler.getStackInSlot(i));
                 }
                 yield stacks;
             }
             case FLUID -> {
                 var tank = (FluidStorage) value;
-                yield new FluidMark(tank.getFluid().copy(), tank.getCapacity());
+                yield new FluidMark(StackSnapshots.of(tank.getFluid()), tank.getCapacity());
             }
             case SAVED_TAG -> value.serializeNBT(Platform.getFrozenRegistry());
+            case READ_VALUE -> readValue(value);
         };
     }
 
     @Override
     public boolean areDifferent(@NotNull Object managedMark, @NotNull INBTSerializable<?> value) {
-        return switch (SNAPSHOTS.get(value.getClass())) {
+        return switch (snapshotOf(value)) {
             case ITEMS -> {
                 if (!(managedMark instanceof ItemStack[] stacks)) yield true;
                 var handler = (ItemStackHandler) value;
@@ -101,12 +120,13 @@ public class INBTSerializableReadOnlyAccessor implements IReadOnlyAccessor<INBTS
                 yield mark.capacity != tank.getCapacity() || !FluidStack.matches(mark.fluid, tank.getFluid());
             }
             case SAVED_TAG -> !value.serializeNBT(Platform.getFrozenRegistry()).equals(managedMark);
+            case READ_VALUE -> !Objects.equals(managedMark, readValue(value));
         };
     }
 
     @Override
     public Object updateMark(@NotNull Object managedMark, @NotNull INBTSerializable<?> value) {
-        if (SNAPSHOTS.get(value.getClass()) != Snapshot.SAVED_TAG) {
+        if (snapshotOf(value) != Snapshot.SAVED_TAG) {
             return IMarkFunction.super.updateMark(managedMark, value);
         }
         var tag = value.serializeNBT(Platform.getFrozenRegistry());
