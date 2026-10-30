@@ -43,6 +43,10 @@ public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
     /**
      * Create a packet to sync fields of a block entity. This will also clear the dirty flag of all synced fields.
      */
+    public BlockPos getPos() {
+        return pos;
+    }
+
     public static SPacketAutoSyncBlockEntity of(ISyncBlockEntity tile, BitSet changed, byte[] data, CompoundTag extra) {
         return new SPacketAutoSyncBlockEntity(tile.getSelf().getType(), tile.getSelf().getBlockPos(), changed, data, extra);
     }

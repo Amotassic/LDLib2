@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.networking;
 
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -11,7 +10,6 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
  */
 @NoArgsConstructor
 public abstract class PacketIntLocation implements CustomPacketPayload {
-    @Getter
     protected BlockPos pos;
 
     public PacketIntLocation(BlockPos pos) {

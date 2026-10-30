@@ -4,7 +4,9 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -58,7 +60,17 @@ public record SPacketAutoSyncBlockEntities(List<Entry> entries) implements Custo
          * An upper bound of what the entry adds to an encoded packet.
          */
         public int sizeBound() {
-            return 32 + changed.size() / 8 + data.length + (extra.isEmpty() ? 0 : extra.sizeInBytes());
+            return 32 + changed.size() / 8 + data.length + (extra.isEmpty() ? 0 : encodedSize(extra));
+        }
+
+        private static int encodedSize(CompoundTag tag) {
+            var buf = Unpooled.buffer();
+            try {
+                new FriendlyByteBuf(buf).writeNbt(tag);
+                return buf.readableBytes();
+            } finally {
+                buf.release();
+            }
         }
     }
 

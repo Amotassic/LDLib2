@@ -4,14 +4,21 @@ import com.lowdragmc.lowdraglib2.CommonProxy;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntities;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntities.Entry;
+import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
+import com.lowdragmc.lowdraglib2.syncdata.holder.ISyncMangedHolder;
+import com.lowdragmc.lowdraglib2.syncdata.holder.SyncPacketBatch;
 import com.lowdragmc.lowdraglib2.utils.ByteBufUtil;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -27,6 +34,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 @GameTestHolder(LDLib2.MOD_ID)
 public class SyncPacketBatchTest {
@@ -41,7 +49,9 @@ public class SyncPacketBatchTest {
                 new Entry(new BlockPos(1, 2, 3), CommonProxy.SYNC_TEST_BE_TYPE.get(), bits(0, 3), new byte[]{1, 2, 3}, new CompoundTag()),
                 new Entry(new BlockPos(-4, 5, -6), CommonProxy.SYNC_BENCH_BE_TYPE.get(), new BitSet(), new byte[0],
                         TagBuilder.compound().add("a", 1).add("b", "text").add("c", TagBuilder.compound().add("d", 2.5).build()).build()),
-                new Entry(new BlockPos(7, -64, 9), BlockEntityType.FURNACE, bits(70), bigData, new CompoundTag()));
+                new Entry(new BlockPos(7, -64, 9), BlockEntityType.FURNACE, bits(70), bigData, new CompoundTag()),
+                new Entry(BlockPos.ZERO, BlockEntityType.CHEST, bits(1), new byte[]{4},
+                        TagBuilder.compound().add("\u540d\u5b57", "\u5b57".repeat(4000)).build()));
 
         var decoded = SPacketAutoSyncBlockEntities.CODEC.decode(buffer(level, SPacketAutoSyncBlockEntities.CODEC, new SPacketAutoSyncBlockEntities(entries)));
         check(helper, decoded.entries().size() == entries.size(), "decoded " + decoded.entries().size() + " entries");
@@ -105,6 +115,84 @@ public class SyncPacketBatchTest {
         SyncTestBlockEntity secondBe = helper.getBlockEntity(second);
         check(helper, firstBe.counter == 5, "the first block entity has counter " + firstBe.counter + ", expected 5 and not the mismatched type's 9");
         check(helper, secondBe.counter == 7, "a corrupt entry stopped the ones after it, counter " + secondBe.counter);
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void serverBatchesDefaultPacketsAndSkipsBrokenUpdates(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var state = SyncTestBlock.BLOCK.defaultBlockState();
+        var first = new SyncTestBlockEntity(new BlockPos(1, 2, 3), state) {
+            @Override
+            public void writeCustomSyncData(HolderLookup.Provider provider, CompoundTag tag) {
+                tag.putString("note", "first");
+            }
+        };
+        var removed = new SyncTestBlockEntity(new BlockPos(4, 5, 6), state);
+        removed.setRemoved();
+        var throwing = new ManagedCodecTest.SyncedHolder(level) {
+            @Override
+            public void writeCustomSyncData(HolderLookup.Provider provider, CompoundTag tag) {
+                throw new IllegalStateException("broken holder");
+            }
+        };
+        var custom = new ManagedCodecTest.SyncedHolder(level);
+        var second = new SyncTestBlockEntity(new BlockPos(7, 8, 9), state);
+        var updates = List.of(first, removed, throwing, custom, second).stream()
+                .map(holder -> new SyncPacketBatch.Update(holder, bits(0), new byte[]{1})).toList();
+
+        var packets = SyncPacketBatch.build(level, updates);
+        var positions = packets.entries().stream().map(Entry::pos).toList();
+        check(helper, positions.equals(List.of(first.getBlockPos(), second.getBlockPos())), "batched " + positions);
+        check(helper, packets.entries().getFirst().extra().getString("note").equals("first"), "custom sync data lost: " + packets.entries().getFirst().extra());
+        check(helper, packets.singles().size() == 2, packets.singles().size() + " single packets for the players who can't take a batch");
+        check(helper, packets.custom().size() == 1 && packets.custom().getFirst().payload().type().id().equals(LDLib2.id("managed_codec_test")),
+                "the holder's own payload was not passed through: " + packets.custom());
+        helper.succeed();
+    }
+
+    private record FakeReceiver(Set<CustomPacketPayload.Type<?>> channels, boolean broken, List<CustomPacketPayload> received)
+            implements SyncPacketBatch.Receiver {
+        FakeReceiver(boolean broken, CustomPacketPayload.Type<?>... channels) {
+            this(Set.of(channels), broken, new ArrayList<>());
+        }
+
+        @Override
+        public boolean hasChannel(CustomPacketPayload.Type<?> type) {
+            if (broken) throw new IllegalStateException("expected by the test");
+            return channels.contains(type);
+        }
+
+        @Override
+        public void send(Packet<?> packet) {
+            received.add(((ClientboundCustomPayloadPacket) packet).payload());
+        }
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void serverSendsWhatEachPlayerSupports(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var state = SyncTestBlock.BLOCK.defaultBlockState();
+        var customType = new CustomPacketPayload.Type<>(LDLib2.id("managed_codec_test"));
+        var updates = List.<ISyncMangedHolder>of(new SyncTestBlockEntity(new BlockPos(1, 2, 3), state),
+                        new ManagedCodecTest.SyncedHolder(level), new SyncTestBlockEntity(new BlockPos(4, 5, 6), state)).stream()
+                .map(holder -> new SyncPacketBatch.Update(holder, bits(0), new byte[]{1})).toList();
+        var packets = SyncPacketBatch.build(level, updates);
+
+        var broken = new FakeReceiver(true);
+        var batching = new FakeReceiver(false, SPacketAutoSyncBlockEntities.TYPE, SPacketAutoSyncBlockEntity.TYPE, customType);
+        var singleOnly = new FakeReceiver(false, SPacketAutoSyncBlockEntity.TYPE, customType);
+        var none = new FakeReceiver(false);
+        SyncPacketBatch.send(List.of(broken, batching, singleOnly, none), packets);
+
+        check(helper, batching.received().size() == 2 && batching.received().getFirst() instanceof SPacketAutoSyncBlockEntities batch
+                && batch.entries().size() == 2 && batching.received().getLast().type().equals(customType),
+                "a player taking batches got " + batching.received());
+        check(helper, singleOnly.received().size() == 3 && singleOnly.received().stream().filter(SPacketAutoSyncBlockEntity.class::isInstance).count() == 2,
+                "a player without the batch channel got " + singleOnly.received());
+        check(helper, none.received().isEmpty(), "a player without the channels got " + none.received());
         helper.succeed();
     }
 
