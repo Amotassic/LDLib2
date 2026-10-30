@@ -57,6 +57,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
                     }
                 }
             }, serverLevel.registryAccess());
+            if (SyncPacketBatch.offer(this, changed, data)) return;
             try {
                 server.executeIfPossible(() -> {
                     if (!Platform.serverSafe(server)) return;

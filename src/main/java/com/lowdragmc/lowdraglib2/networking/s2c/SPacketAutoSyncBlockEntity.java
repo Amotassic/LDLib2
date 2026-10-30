@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.networking.s2c;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.networking.PacketIntLocation;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncBlockEntity;
+import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -20,6 +21,7 @@ import java.util.*;
 /**
  * a packet that contains payload for managed fields
  */
+@Getter
 public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
     public static final ResourceLocation ID = LDLib2.id("auto_sync_block_entity");
     public static final Type<SPacketAutoSyncBlockEntity> TYPE = new Type<>(ID);

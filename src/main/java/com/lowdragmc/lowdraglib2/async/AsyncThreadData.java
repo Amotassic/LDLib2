@@ -8,13 +8,20 @@ import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.saveddata.SavedData;
 
+import org.jetbrains.annotations.Nullable;
+
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 /**
  * @author KilaBash
@@ -57,7 +64,7 @@ public class AsyncThreadData extends SavedData {
             .setNameFormat(THREAD_NAME_FORMAT)
             .setDaemon(true)
             .build();
-    private static final ThreadLocal<Set<BlockEntity>> PERIOD_CHANGES = new ThreadLocal<>();
+    private static final ThreadLocal<Map<Object, PeriodTask>> PERIOD_TASKS = new ThreadLocal<>();
     @Getter
     private long periodID = Long.MIN_VALUE;
 
@@ -88,10 +95,10 @@ public class AsyncThreadData extends SavedData {
     }
 
     private void searchingTask() {
-        var changed = new ReferenceOpenHashSet<BlockEntity>();
+        var tasks = new LinkedHashMap<Object, PeriodTask>();
         try {
             if (Platform.isServerNotSafe()) return;
-            PERIOD_CHANGES.set(changed);
+            PERIOD_TASKS.set(tasks);
             for (IAsyncLogic logic : asyncLogics) {
                 try {
                     logic.asyncTick(periodID);
@@ -100,14 +107,35 @@ public class AsyncThreadData extends SavedData {
                 }
             }
         } finally {
-            PERIOD_CHANGES.remove();
-            flushChangedBlockEntities(changed);
+            PERIOD_TASKS.remove();
+            runOnServer(tasks.values());
         }
         periodID++;
     }
 
     public static boolean isThreadService() {
-        return PERIOD_CHANGES.get() != null;
+        return PERIOD_TASKS.get() != null;
+    }
+
+    /**
+     * Work an async period gathers for the server thread. Once the period ends, every task it registered through
+     * {@link #periodTask} runs on the server thread, all in one scheduled task, in the order they were registered.
+     */
+    public interface PeriodTask {
+        void run(MinecraftServer server);
+    }
+
+    /**
+     * The task registered under {@code key} for the current async period, created on first use. Call it from
+     * {@link IAsyncLogic#asyncTick} to gather work that should reach the server thread in one go when the period ends.
+     *
+     * @return {@code null} if the calling thread is not running an async period
+     */
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public static <T extends PeriodTask> T periodTask(Object key, Supplier<T> factory) {
+        var tasks = PERIOD_TASKS.get();
+        return tasks == null ? null : (T) tasks.computeIfAbsent(key, k -> factory.get());
     }
 
     /**
@@ -119,24 +147,39 @@ public class AsyncThreadData extends SavedData {
      * caller has to call {@code setChanged} itself
      */
     public static boolean deferSetChanged(BlockEntity blockEntity) {
-        var changed = PERIOD_CHANGES.get();
-        if (changed == null) return false;
-        changed.add(blockEntity);
+        var task = periodTask(ChangedBlockEntities.class, ChangedBlockEntities::new);
+        if (task == null) return false;
+        task.blockEntities.add(blockEntity);
         return true;
     }
 
-    private void flushChangedBlockEntities(Set<BlockEntity> changed) {
-        if (changed.isEmpty()) return;
+    private static final class ChangedBlockEntities implements PeriodTask {
+        private final Set<BlockEntity> blockEntities = new ReferenceOpenHashSet<>();
+
+        @Override
+        public void run(MinecraftServer server) {
+            for (var blockEntity : blockEntities) {
+                try {
+                    blockEntity.setChanged();
+                } catch (Throwable e) {
+                    LDLib2.LOGGER.error("Failed to mark block entity {} changed", blockEntity, e);
+                }
+            }
+        }
+    }
+
+    private void runOnServer(Collection<PeriodTask> tasks) {
+        if (tasks.isEmpty()) return;
         var server = serverLevel.getServer();
         if (!Platform.serverSafe(server)) return;
         try {
             server.executeIfPossible(() -> {
                 if (!Platform.serverSafe(server)) return;
-                for (var blockEntity : changed) {
+                for (var task : tasks) {
                     try {
-                        blockEntity.setChanged();
+                        task.run(server);
                     } catch (Throwable e) {
-                        LDLib2.LOGGER.error("Failed to mark block entity {} changed", blockEntity, e);
+                        LDLib2.LOGGER.error("Async period task {} failed", task, e);
                     }
                 }
             });
