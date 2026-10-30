@@ -58,7 +58,8 @@ public class AsyncThreadData extends SavedData {
 
 
     // ********************************* async thread ********************************* //
-    private final Set<IAsyncLogic> asyncLogics = ConcurrentHashMap.newKeySet();
+    // how many times each logic was added, by identity
+    private final Map<LogicKey, Integer> asyncLogics = new ConcurrentHashMap<>();
     private ScheduledExecutorService executorService;
     private final static ThreadFactory THREAD_FACTORY = new ThreadFactoryBuilder()
             .setNameFormat(THREAD_NAME_FORMAT)
@@ -74,12 +75,24 @@ public class AsyncThreadData extends SavedData {
         executorService.scheduleAtFixedRate(this::searchingTask, 0, DEFAULT_SCHEDULE_PERIOD_MS, TimeUnit.MILLISECONDS);
     }
 
+    private record LogicKey(IAsyncLogic logic) {
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof LogicKey key && key.logic == logic;
+        }
+
+        @Override
+        public int hashCode() {
+            return System.identityHashCode(logic);
+        }
+    }
+
     /**
-     * add a async logic runnable, which runs once per period however many times it is added
+     * add a async logic runnable. A logic added n times runs n times per period, until it has been removed n times
      * @param logic runnable
      */
     public void addAsyncLogic(IAsyncLogic logic) {
-        asyncLogics.add(logic);
+        asyncLogics.merge(new LogicKey(logic), 1, Integer::sum);
         createExecutorService();
     }
 
@@ -88,7 +101,7 @@ public class AsyncThreadData extends SavedData {
      * @param logic runnable
      */
     public void removeAsyncLogic(IAsyncLogic logic) {
-        asyncLogics.remove(logic);
+        asyncLogics.computeIfPresent(new LogicKey(logic), (key, count) -> count > 1 ? count - 1 : null);
         if (asyncLogics.isEmpty()) {
             releaseExecutorService();
         }
@@ -99,16 +112,23 @@ public class AsyncThreadData extends SavedData {
         try {
             if (Platform.isServerNotSafe()) return;
             PERIOD_TASKS.set(tasks);
-            for (IAsyncLogic logic : asyncLogics) {
-                try {
-                    logic.asyncTick(periodID);
-                } catch (Throwable e) {
-                    LDLib2.LOGGER.error("asyncThreadLogic error with an async logic {}", logic, e);
+            asyncLogics.forEach((key, count) -> {
+                for (int i = 0; i < count; i++) {
+                    try {
+                        key.logic.asyncTick(periodID);
+                    } catch (Throwable e) {
+                        LDLib2.LOGGER.error("asyncThreadLogic error with an async logic {}", key.logic, e);
+                    }
                 }
-            }
+            });
         } finally {
             PERIOD_TASKS.remove();
-            runOnServer(tasks.values());
+            // the executor stops scheduling this task for good once it throws
+            try {
+                runOnServer(tasks.values());
+            } catch (Throwable e) {
+                LDLib2.LOGGER.error("Failed to hand the async period's work to the server", e);
+            }
         }
         periodID++;
     }
@@ -159,6 +179,7 @@ public class AsyncThreadData extends SavedData {
         @Override
         public void run(MinecraftServer server) {
             for (var blockEntity : blockEntities) {
+                if (blockEntity.isRemoved()) continue;
                 try {
                     blockEntity.setChanged();
                 } catch (Throwable e) {
