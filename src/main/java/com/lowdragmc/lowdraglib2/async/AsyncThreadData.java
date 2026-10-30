@@ -58,7 +58,7 @@ public class AsyncThreadData extends SavedData {
 
 
     // ********************************* async thread ********************************* //
-    private final CopyOnWriteArrayList<IAsyncLogic> asyncLogics = new CopyOnWriteArrayList<>();
+    private final Set<IAsyncLogic> asyncLogics = ConcurrentHashMap.newKeySet();
     private ScheduledExecutorService executorService;
     private final static ThreadFactory THREAD_FACTORY = new ThreadFactoryBuilder()
             .setNameFormat(THREAD_NAME_FORMAT)
@@ -75,7 +75,7 @@ public class AsyncThreadData extends SavedData {
     }
 
     /**
-     * add a async logic runnable
+     * add a async logic runnable, which runs once per period however many times it is added
      * @param logic runnable
      */
     public void addAsyncLogic(IAsyncLogic logic) {
