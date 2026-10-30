@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.test.syncdata;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.misc.FluidStorage;
 import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.CustomDirectAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
@@ -13,6 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
@@ -337,6 +339,32 @@ public class SyncChangeDetectionTest {
             failures.add("sent " + server.syncFieldNames(server.sentChanged) + ", expected " + expected);
         }
         if (server.persistenceNotices == 0) failures.add("persistence was not notified");
+        report(helper, failures);
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    @SuppressWarnings("unchecked")
+    public static void codecMarkWorksInAnyBuilderOrder(GameTestHelper helper) {
+        var failures = new ArrayList<String>();
+        var listType = (Class<List<String>>) (Class<?>) List.class;
+        var codecFirst = CustomDirectAccessor.builder(listType)
+                .codec(Codec.STRING.listOf()).streamCodec(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list())).codecMark().build();
+        var markFirst = CustomDirectAccessor.builder(listType)
+                .codecMark().codec(Codec.STRING.listOf()).streamCodec(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list())).build();
+        for (var accessor : List.of(codecFirst, markFirst)) {
+            var list = new ArrayList<>(List.of("a"));
+            var mark = accessor.obtainManagedMark(list);
+            if (accessor.updateMark(mark, list) != null) failures.add("an unchanged list got a new mark");
+            list.add("b");
+            if (accessor.updateMark(mark, list) == null || !accessor.areDifferent(mark, list)) failures.add("adding to the list went unnoticed");
+        }
+        var overridden = CustomDirectAccessor.builder(listType)
+                .codec(Codec.STRING.listOf()).streamCodec(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()))
+                .codecMark().copyMark(ArrayList::new).build();
+        if (!(overridden.obtainManagedMark(new ArrayList<>(List.of("a"))) instanceof ArrayList<?>)) {
+            failures.add("copyMark after codecMark did not replace it");
+        }
         report(helper, failures);
     }
 
