@@ -9,12 +9,10 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncPersistRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.storage.FieldManagedStorage;
 import com.lowdragmc.lowdraglib2.test.syncdata.SyncProbeHolder;
-import io.netty.buffer.Unpooled;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -22,23 +20,21 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.network.connection.ConnectionType;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * The {@link SyncBenchProfiles#MIXED} field mix as a real block entity, with counters for the work the sync framework
  * causes on the server thread.
  */
 public class SyncBenchBlockEntity extends BlockEntity implements ISyncPersistRPCBlockEntity {
-    private static final int SIZE_SAMPLE_EVERY = 16;
-
     public static final AtomicLong SET_CHANGED_CALLS = new AtomicLong();
     public static final AtomicLong SET_CHANGED_NANOS = new AtomicLong();
-    public static final AtomicLong PACKETS = new AtomicLong();
-    public static final AtomicLong SAMPLED_PACKETS = new AtomicLong();
-    public static final AtomicLong SAMPLED_PACKET_BYTES = new AtomicLong();
+    @Nullable
+    public static volatile Consumer<SPacketAutoSyncBlockEntity> packetListener;
 
     @Getter
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
@@ -116,16 +112,8 @@ public class SyncBenchBlockEntity extends BlockEntity implements ISyncPersistRPC
     @Override
     public SPacketAutoSyncBlockEntity createSyncPacket(BitSet changed, byte[] data, CompoundTag extra) {
         var packet = ISyncPersistRPCBlockEntity.super.createSyncPacket(changed, data, extra);
-        if (PACKETS.incrementAndGet() % SIZE_SAMPLE_EVERY == 0 && level != null) {
-            var buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), level.registryAccess(), ConnectionType.NEOFORGE);
-            try {
-                SPacketAutoSyncBlockEntity.CODEC.encode(buf, packet);
-                SAMPLED_PACKET_BYTES.addAndGet(buf.readableBytes());
-                SAMPLED_PACKETS.incrementAndGet();
-            } finally {
-                buf.release();
-            }
-        }
+        var listener = packetListener;
+        if (listener != null) listener.accept(packet);
         return packet;
     }
 }

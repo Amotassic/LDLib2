@@ -3,16 +3,23 @@ package com.lowdragmc.lowdraglib2.test.syncdata.bench;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.async.AsyncThreadData;
 import com.lowdragmc.lowdraglib2.async.IAsyncLogic;
+import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntities;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib2.test.syncdata.SyncProbeHolder;
 import com.lowdragmc.lowdraglib2.test.syncdata.bench.SyncBenchProfiles.Profile;
+import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.VarInt;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.neoforged.neoforge.network.connection.ConnectionType;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
@@ -200,10 +207,10 @@ public class SyncBenchmark {
         private int phase = -1;
         private long phaseEnd;
 
-        private long cpuStart, timeStart, periodStart, packetsStart, sampledStart, sampledBytesStart, setChangedStart, setChangedNanosStart;
+        private long cpuStart, timeStart, periodStart, setChangedStart, setChangedNanosStart;
         private Map<Long, Long> asyncStart = Map.of();
         private double onSeconds, offSeconds;
-        private long onCpu, offCpu, asyncNanos, periods, packets, sampled, sampledBytes, setChanged, setChangedNanos;
+        private long onCpu, offCpu, asyncNanos, periods, setChanged, setChangedNanos;
 
         private MacroRun(AsyncThreadData asyncData, List<SyncBenchBlockEntity> blockEntities) {
             this.asyncData = asyncData;
@@ -231,9 +238,6 @@ public class SyncBenchmark {
         private void startPhase() {
             asyncStart = asyncThreadCpu();
             periodStart = asyncData.getPeriodID();
-            packetsStart = SyncBenchBlockEntity.PACKETS.get();
-            sampledStart = SyncBenchBlockEntity.SAMPLED_PACKETS.get();
-            sampledBytesStart = SyncBenchBlockEntity.SAMPLED_PACKET_BYTES.get();
             setChangedStart = SyncBenchBlockEntity.SET_CHANGED_CALLS.get();
             setChangedNanosStart = SyncBenchBlockEntity.SET_CHANGED_NANOS.get();
             timeStart = System.nanoTime();
@@ -254,23 +258,17 @@ public class SyncBenchmark {
                 asyncNanos += entry.getValue() - asyncStart.getOrDefault(entry.getKey(), 0L);
             }
             periods += asyncData.getPeriodID() - periodStart;
-            packets += SyncBenchBlockEntity.PACKETS.get() - packetsStart;
-            sampled += SyncBenchBlockEntity.SAMPLED_PACKETS.get() - sampledStart;
-            sampledBytes += SyncBenchBlockEntity.SAMPLED_PACKET_BYTES.get() - sampledBytesStart;
             setChanged += SyncBenchBlockEntity.SET_CHANGED_CALLS.get() - setChangedStart;
             setChangedNanos += SyncBenchBlockEntity.SET_CHANGED_NANOS.get() - setChangedNanosStart;
         }
 
         private List<String> report(int total, int active, long placeNanos) {
             var lines = new ArrayList<String>();
-            double payloadPerPacket = sampled == 0 ? 0 : (double) sampledBytes / sampled;
-            // packet id + payload channel id + frame length + compression marker
-            double framing = 1 + 1 + SPacketAutoSyncBlockEntity.ID.toString().length() + 2 + 1;
             double syncNanosPerSecond = onCpu / onSeconds - offCpu / offSeconds;
 
             lines.add(total + " block entities in a " + GRID_X + "x" + GRID_Y + "x" + GRID_Z + " block, every " + ACTIVE_EVERY
                     + "th one working (" + active + "): progress and energy change every tick, an output slot every 20 ticks. "
-                    + "No player is watching, so packets are built but go nowhere");
+                    + "No player is watching, so this is what loaded but unwatched machines cost");
             lines.add("placing them: " + ms(placeNanos) + " ms (" + SyncBenchReport.fmt(placeNanos / 1000.0 / total)
                     + " us each, includes storage init and attaching to the async thread)");
             lines.add("measured " + SyncBenchReport.fmt(onSeconds) + " s with sync on and " + SyncBenchReport.fmt(offSeconds)
@@ -285,12 +283,73 @@ public class SyncBenchmark {
                     + SyncBenchReport.fmt(setChanged == 0 ? 0 : setChangedNanos / 1000.0 / setChanged) + " us each, "
                     + SyncBenchReport.fmt(setChangedNanos / 1e6 / onSeconds) + " ms per second; "
                     + SyncBenchReport.fmt(setChanged / onSeconds / active) + " per working block entity per second");
-            lines.add("sync packets: " + SyncBenchReport.fmt(packets / onSeconds) + " per second ("
-                    + SyncBenchReport.fmt(packets / onSeconds / active) + " per working block entity), payload "
-                    + SyncBenchReport.fmt(payloadPerPacket) + " B + ~" + SyncBenchReport.fmt(framing) + " B framing per packet (sampled "
-                    + sampled + "), ~" + SyncBenchReport.fmt(packets / onSeconds * (payloadPerPacket + framing) / 1024)
-                    + " KiB/s for every player watching");
             return lines;
+        }
+    }
+
+    @GameTest(template = "empty", batch = "ldlib2_syncbench_4_wire")
+    @PrefixGameTestTemplate(false)
+    public static void wireSize(GameTestHelper helper) {
+        if (!ENABLED) {
+            helper.succeed();
+            return;
+        }
+        var level = helper.getLevel();
+        var lines = new ArrayList<String>();
+        lines.add("bytes per block entity update before compression, which the game applies to packets of 256 bytes and more; "
+                + "framing counted as packet id, channel id, frame length and compression marker");
+        for (int perChunk : new int[]{1, 8, 64}) {
+            for (boolean container : new boolean[]{false, true}) {
+                var updates = captureUpdates(helper, perChunk, container);
+                long single = 0;
+                for (var packet : updates) {
+                    single += wireBytes(level, SPacketAutoSyncBlockEntity.CODEC, packet, SPacketAutoSyncBlockEntity.ID);
+                }
+                long batched = 0;
+                var entries = updates.stream().map(SPacketAutoSyncBlockEntities.Entry::of).toList();
+                for (var packet : SPacketAutoSyncBlockEntities.pack(entries, 256 * 1024)) {
+                    batched += wireBytes(level, SPacketAutoSyncBlockEntities.CODEC, packet, SPacketAutoSyncBlockEntities.ID);
+                }
+                lines.add(perChunk + " updates in a chunk, " + (container ? "progress, energy and an output slot" : "progress and energy")
+                        + ": " + SyncBenchReport.fmt(single / (double) updates.size()) + " B each as single packets, "
+                        + SyncBenchReport.fmt(batched / (double) updates.size()) + " B batched ("
+                        + SyncBenchReport.fmt(single / (double) batched) + "x smaller)");
+            }
+        }
+        SyncBenchReport.section("wire", "Wire size of sync packets", lines);
+        helper.succeed();
+    }
+
+    private static List<SPacketAutoSyncBlockEntity> captureUpdates(GameTestHelper helper, int count, boolean container) {
+        var level = helper.getLevel();
+        var updates = new ArrayList<SPacketAutoSyncBlockEntity>();
+        SyncBenchBlockEntity.packetListener = updates::add;
+        try {
+            for (int i = 0; i < count; i++) {
+                var be = new SyncBenchBlockEntity(helper.absolutePos(new BlockPos(i % 16, 10 + i / 16, 0)), SyncBenchBlock.BLOCK.defaultBlockState());
+                be.setLevel(level);
+                for (var ref : be.getSyncStorage().getSyncFields()) {
+                    ref.clearSyncDirty();
+                }
+                be.work(container ? 20 : 1);
+                // off the async thread, so the update is built and handed over right away
+                be.sync(false);
+            }
+        } finally {
+            SyncBenchBlockEntity.packetListener = null;
+        }
+        return updates;
+    }
+
+    private static <T> long wireBytes(ServerLevel level, StreamCodec<RegistryFriendlyByteBuf, T> codec, T payload, ResourceLocation channel) {
+        var buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), level.registryAccess(), ConnectionType.NEOFORGE);
+        try {
+            codec.encode(buf, payload);
+            int id = channel.toString().length();
+            int packet = 1 + VarInt.getByteSize(id) + id + buf.readableBytes();
+            return VarInt.getByteSize(packet) + 1 + packet;
+        } finally {
+            buf.release();
         }
     }
 
