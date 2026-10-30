@@ -32,6 +32,7 @@ import dev.vfyjxf.taffy.tree.TaffyTree;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.Util;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -654,7 +655,7 @@ public class ModularUI {
      * tree changes it makes are laid out in that same frame.
      *
      * <p>Frames are not ticks: this fires at the render rate, and also for a UI that has no
-     * {@link Screen} behind it. The callback receives {@link System#nanoTime()} sampled once at the
+     * {@link Screen} behind it. The callback receives {@link Util#getNanos()} sampled once at the
      * top of the frame, shared by every callback in it. A callback may add or remove callbacks,
      * including itself, while it runs.
      *
@@ -670,7 +671,7 @@ public class ModularUI {
 
     private void runFrameCallbacks() {
         if (frameCallbacks.isEmpty()) return;
-        var nanos = System.nanoTime();
+        var nanos = Util.getNanos();
         // Copied: callbacks may register or unregister callbacks during the walk.
         for (var callback : List.copyOf(frameCallbacks)) {
             callback.accept(nanos);
@@ -1286,7 +1287,7 @@ public class ModularUI {
                     UIEventDispatcher.dispatchEvent(clickEvent);
                     hasHandler |= clickEvent.hasHandler;
                     if (lastMouseClickElement == releasedElement && button == lastMouseClickButton) {
-                        if (System.currentTimeMillis() - lastMouseClickTime < 300) { // 300ms follow HTML5 spec
+                        if (Util.getMillis() - lastMouseClickTime < 300) { // 300ms follow HTML5 spec
                             var doubleClickEvent = UIEvent.create(UIEvents.DOUBLE_CLICK);
                             doubleClickEvent.x = (float) mouseX;
                             doubleClickEvent.y = (float) mouseY;
@@ -1303,11 +1304,11 @@ public class ModularUI {
                     }
                 }
                 lastMouseClickButton = button;
-                lastMouseClickTime = System.currentTimeMillis();
+                lastMouseClickTime = Util.getMillis();
                 return hasHandler;
             }
             lastMouseClickButton = button;
-            lastMouseClickTime = System.currentTimeMillis();
+            lastMouseClickTime = Util.getMillis();
             return false;
         }
 

@@ -11,6 +11,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 
 import java.util.function.Consumer;
@@ -87,7 +88,7 @@ public class ShaderManager {
 			if (mc.player != null) {
 				time = (mc.player.tickCount + mc.getTimer().getGameTimeDeltaPartialTick(false)) / 20;
 			} else {
-				time = System.currentTimeMillis() / 1000f;
+				time = Util.getMillis() / 1000f;
 			}
 			cache.glUniform1F("iTime", time);
 			cache.glUniform2F("iResolution", fbo.width, fbo.height);

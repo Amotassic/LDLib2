@@ -73,7 +73,7 @@ Use LDLib2's shader, texture, model rendering, and scene utilities together with
 <td width="50%" valign="top">
 <a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/ui/testing/"><img src=".github/readme/ui-test.png" alt="A Snake HUD opened and driven by an LDLib2 UI test scenario"></a><br>
 <strong><a href="https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/ui/testing/">UI Test Harness</a></strong><br>
-Script scenarios that open real UIs in a real client, click and type through them, wait for server sync, and save screenshots and reports. Runs headless, in parallel, or on a dedicated server with several clients.
+Script scenarios that open real UIs in a real client, click and type through them, wait for server sync, and save screenshots and reports. Runs headless, in parallel, or on a dedicated server with several clients. The same scripts record documentation videos, kept apart from the tests: a smooth pointer, click ripples, the keys pressed, bilingual captions, spotlights and zooms, encoded straight to MP4 (<code>-PldRecord</code>, see <a href="uitest.md#recording-video">uitest.md</a>).
 </td>
 </tr>
 </table>

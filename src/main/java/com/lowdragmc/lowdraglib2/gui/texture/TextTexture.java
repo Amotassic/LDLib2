@@ -16,6 +16,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Setter;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -302,7 +303,7 @@ public class TextTexture extends TransformTexture {
         } else {
             graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
         }
-        var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
+        var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(Util.getMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
         graphics.drawString(fontRenderer, line, (int) (from - t * totalW), (int) _y, color, dropShadow);
         if (context != null) {
             context.disableScissor();

@@ -65,6 +65,7 @@ public class SyntheticInputDriver extends InputDriver {
         }
         dispatchedX = x;
         dispatchedY = y;
+        if (listener != null) listener.mouseDown(x, y, button);
     }
 
     @Override
@@ -74,6 +75,7 @@ public class SyntheticInputDriver extends InputDriver {
         if (screen != null) {
             screen.mouseReleased(x, y, button);
         }
+        if (listener != null) listener.mouseUp(x, y, button);
     }
 
     @Override
@@ -83,6 +85,7 @@ public class SyntheticInputDriver extends InputDriver {
         if (screen != null) {
             screen.mouseScrolled(x, y, 0d, amount);
         }
+        if (listener != null) listener.scroll(x, y, amount);
     }
 
     @Override
@@ -93,6 +96,7 @@ public class SyntheticInputDriver extends InputDriver {
         if (screen != null) {
             screen.keyPressed(keyCode, Keys.scanCodeOf(keyCode), modifiers | heldModifiers());
         }
+        if (listener != null) listener.keyDown(keyCode, modifiers | heldModifiers());
     }
 
     @Override
@@ -102,6 +106,7 @@ public class SyntheticInputDriver extends InputDriver {
             screen.keyReleased(keyCode, Keys.scanCodeOf(keyCode), modifiers | heldModifiers());
         }
         markHeld(keyCode, false);
+        if (listener != null) listener.keyUp(keyCode, modifiers | heldModifiers());
     }
 
     @Override
@@ -110,5 +115,6 @@ public class SyntheticInputDriver extends InputDriver {
         if (screen != null) {
             screen.charTyped(codePoint, modifiers);
         }
+        if (listener != null) listener.charTyped(codePoint);
     }
 }

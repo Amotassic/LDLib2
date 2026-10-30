@@ -1120,7 +1120,7 @@ public class TextField extends BindableUIElement<String> {
         }
         // draw cursor
         var cursorPosX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, cursorPos)) * scale;
-        if (isFocused() && System.currentTimeMillis() % 1000 < 500) {
+        if (isFocused() && Util.getMillis() % 1000 < 500) {
             DrawerHelper.drawSolidRect(guiContext.graphics,
                     x + cursorPosX - displayOffset,
                     lineY,

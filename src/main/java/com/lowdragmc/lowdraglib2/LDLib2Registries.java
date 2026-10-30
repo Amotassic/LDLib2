@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.registry.LDLRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.ui.IMenuTest;
 import com.lowdragmc.lowdraglib2.test.ui.IScreenTest;
+import com.lowdragmc.lowdraglib2.uitest.UIRecording;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.uitest.mp.MPScenario;
 import net.neoforged.api.distmarker.Dist;
@@ -51,6 +52,14 @@ public class LDLib2Registries {
     public static AutoRegistry.LDLibRegisterClient<UIScenario, Supplier<UIScenario>> UI_SCENARIOS;
 
     /**
+     * Scripted UI videos. Separate from {@link #UI_SCENARIOS} so a test run never selects them.
+     *
+     * @see com.lowdragmc.lowdraglib2.uitest.UIRecording
+     */
+    @OnlyIn(Dist.CLIENT)
+    public static AutoRegistry.LDLibRegisterClient<UIRecording, Supplier<UIRecording>> UI_RECORDINGS;
+
+    /**
      * Multi-process test scenarios. Deliberately a dist-neutral registry: the dedicated-server
      * process of a {@code runMpTest} run discovers scenarios through it too.
      *
@@ -70,6 +79,7 @@ public class LDLib2Registries {
             if (Platform.isDevEnv()) {
                 SCREEN_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("screen_test"), IScreenTest.class, AutoRegistry::noArgsCreator);
                 UI_SCENARIOS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_scenario"), UIScenario.class, AutoRegistry::noArgsCreator);
+                UI_RECORDINGS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_recording"), UIRecording.class, AutoRegistry::noArgsCreator);
             }
         }
         if (Platform.isDevEnv()) {

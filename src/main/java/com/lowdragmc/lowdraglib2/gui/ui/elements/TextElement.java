@@ -21,6 +21,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
+import net.minecraft.Util;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
@@ -318,7 +319,7 @@ public class TextElement extends UIElement {
                     // for rolling text, always align to the left
                     var rollSpeed = getTextStyle().rollSpeed();
                     float totalW = width + lineWidth + 10;
-                    var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
+                    var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(Util.getMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
                     lineX = (float) (x + width - totalW * t);
                 } else {
                     switch (hAlign) {

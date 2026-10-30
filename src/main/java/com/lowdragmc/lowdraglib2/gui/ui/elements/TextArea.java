@@ -33,6 +33,7 @@ import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.Util;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -1298,7 +1299,7 @@ public class TextArea extends BindableUIElement<String[]> {
 
     @OnlyIn(Dist.CLIENT)
     protected void drawCursor(GUIContext guiContext, Font font, ResourceLocation textFont, float scale, float x, float y) {
-        if (isVisible() && isFocused() && isDisplayed() && (!isActive() || System.currentTimeMillis() % 1000 < 500)) {
+        if (isVisible() && isFocused() && isDisplayed() && (!isActive() || Util.getMillis() % 1000 < 500)) {
             float cursorPosX = font.getSplitter().stringWidth(styledLineComponent(cursorLine, 0, cursorCol)) * scale;
             float cursorY = y + cursorLine * lineHeight() - scrollY;
             DrawerHelper.drawSolidRect(
