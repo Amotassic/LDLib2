@@ -13,6 +13,8 @@ import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 import com.lowdragmc.lowdraglib2.test.*;
 import com.lowdragmc.lowdraglib2.test.syncdata.SyncTestBlock;
 import com.lowdragmc.lowdraglib2.test.syncdata.SyncTestBlockEntity;
+import com.lowdragmc.lowdraglib2.test.syncdata.bench.SyncBenchBlock;
+import com.lowdragmc.lowdraglib2.test.syncdata.bench.SyncBenchBlockEntity;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.BlockItem;
@@ -30,11 +32,13 @@ public class CommonProxy {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TestBlockEntity>> TEST_BE_TYPE;
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SyncTestBlockEntity>> SYNC_TEST_BE_TYPE;
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SyncBenchBlockEntity>> SYNC_BENCH_BE_TYPE;
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<RendererBlockEntity>> RENDERER_BE_TYPE;
 
     static {
         TEST_BE_TYPE = Platform.isDevEnv() ? BLOCK_ENTITY_TYPES.register("test", () -> BlockEntityType.Builder.of(TestBlockEntity::new, TestBlock.BLOCK).build(null)) : null;
         SYNC_TEST_BE_TYPE = Platform.isDevEnv() ? BLOCK_ENTITY_TYPES.register("sync_test", () -> BlockEntityType.Builder.of(SyncTestBlockEntity::new, SyncTestBlock.BLOCK).build(null)) : null;
+        SYNC_BENCH_BE_TYPE = Platform.isDevEnv() ? BLOCK_ENTITY_TYPES.register("sync_bench", () -> BlockEntityType.Builder.of(SyncBenchBlockEntity::new, SyncBenchBlock.BLOCK).build(null)) : null;
         RENDERER_BE_TYPE = BLOCK_ENTITY_TYPES.register("renderer_block", () -> BlockEntityType.Builder.of(RendererBlockEntity::new, RendererBlock.BLOCK).build(null));
     }
 
@@ -45,6 +49,7 @@ public class CommonProxy {
             BLOCKS.register("test_2", () -> NoRendererTestBlock.BLOCK);
             ITEMS.register("test_2", () -> new BlockItem(NoRendererTestBlock.BLOCK, new Item.Properties()));
             BLOCKS.register("sync_test", () -> SyncTestBlock.BLOCK);
+            BLOCKS.register("sync_bench", () -> SyncBenchBlock.BLOCK);
         }
         BLOCKS.register("renderer_block", () -> RendererBlock.BLOCK);
 

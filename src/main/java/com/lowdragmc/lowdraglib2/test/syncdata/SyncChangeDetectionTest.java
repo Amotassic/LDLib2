@@ -1,0 +1,356 @@
+package com.lowdragmc.lowdraglib2.test.syncdata;
+
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.misc.FluidStorage;
+import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ManagedCodec;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.mojang.serialization.Codec;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.gametest.GameTestHolder;
+import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Consumer;
+
+/**
+ * Pins down what the auto sync notices today, field kind by field kind, so changes to change detection can't silently
+ * drop or invent updates.
+ */
+@GameTestHolder(LDLib2.MOD_ID)
+public class SyncChangeDetectionTest {
+
+    public static class Probe extends SyncProbeHolder {
+        @Persisted
+        @DescSynced
+        public int intValue;
+        @Persisted
+        @DescSynced
+        public long longValue;
+        @Persisted
+        @DescSynced
+        public float floatValue;
+        @Persisted
+        @DescSynced
+        public double doubleValue;
+        @Persisted
+        @DescSynced
+        public boolean boolValue;
+        @Persisted
+        @DescSynced
+        public String text = "text";
+        @Persisted
+        @DescSynced
+        public Direction facing = Direction.NORTH;
+        @Persisted
+        @DescSynced
+        public Item item = Items.STONE;
+        @Persisted
+        @DescSynced
+        public UUID owner = new UUID(1, 2);
+        @Persisted
+        @DescSynced
+        public ResourceLocation location = LDLib2.id("a");
+        @Persisted
+        @DescSynced
+        public BlockState state = Blocks.STONE.defaultBlockState();
+        @Persisted
+        @DescSynced
+        public ItemStack stack = new ItemStack(Items.APPLE, 2);
+        @Persisted
+        @DescSynced
+        public FluidStack fluid = new FluidStack(Fluids.WATER, 100);
+        @Persisted
+        @DescSynced
+        public BlockPos pos = new BlockPos.MutableBlockPos(1, 2, 3);
+        @Persisted
+        @DescSynced
+        public Vector3f vector = new Vector3f(1, 2, 3);
+        @Persisted
+        @DescSynced
+        public int[] ints = new int[3];
+        @Persisted
+        @DescSynced
+        public ItemStack[] stacks = {new ItemStack(Items.APPLE), ItemStack.EMPTY};
+        @Persisted
+        @DescSynced
+        public List<String> strings = new ArrayList<>(List.of("a"));
+        @Persisted
+        @DescSynced
+        public List<Integer> integers = new ArrayList<>(List.of(1000));
+        @Persisted
+        @DescSynced
+        public List<BlockPos> positions = new ArrayList<>(List.of(BlockPos.ZERO));
+        @Persisted
+        @DescSynced
+        public Map<String, Integer> scores = new HashMap<>(Map.of("a", 1));
+        @Persisted
+        @DescSynced
+        @ManagedCodec("tagsCodec")
+        public List<String> codecTags = new ArrayList<>(List.of("a"));
+        @Persisted
+        @DescSynced
+        public final ItemStackTransfer items = new ItemStackTransfer(3);
+        @Persisted
+        @DescSynced
+        public final FluidStorage tank = new FluidStorage(1000);
+        @Persisted
+        @DescSynced
+        public final LockableItems lockableItems = new LockableItems(2);
+        @Persisted
+        @DescSynced
+        public final LockableTank lockableTank = new LockableTank(1000);
+        @Persisted
+        @DescSynced
+        public final List<ItemStackTransfer> itemList = new ArrayList<>(List.of(new ItemStackTransfer(2)));
+        @Persisted
+        @DescSynced
+        public final Map<String, MapSerializationTest.NestedReadOnly> nestedMap = new HashMap<>(Map.of("a", new MapSerializationTest.NestedReadOnly(1, "x")));
+        @Persisted
+        @DescSynced
+        public final Part part = new Part(this::notifyPersistence);
+        @DescSynced
+        @ConditionalSynced(methodName = "isPositive")
+        public int gated;
+        @DescSynced
+        @LazyManaged
+        public int lazy;
+        @Persisted
+        public int persistOnly;
+
+        public Probe(ServerLevel level) {
+            super(level);
+            items.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 4));
+            items.setStackInSlot(1, new ItemStack(Items.GOLD_INGOT, 4));
+            tank.fill(new FluidStack(Fluids.WATER, 200), IFluidHandler.FluidAction.EXECUTE);
+            lockableItems.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 4));
+            lockableTank.fill(new FluidStack(Fluids.WATER, 200), IFluidHandler.FluidAction.EXECUTE);
+            itemList.getFirst().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 4));
+        }
+
+        private boolean isPositive(int value) {
+            return value > 0;
+        }
+
+        private static Codec<List<String>> tagsCodec() {
+            return Codec.STRING.listOf().xmap(ArrayList::new, list -> list);
+        }
+    }
+
+    private record Case(String name, String field, Consumer<Probe> change, boolean expectSync, boolean expectPersist) {
+        static Case synced(String name, String field, Consumer<Probe> change) {
+            return new Case(name, field, change, true, true);
+        }
+
+        static Case unchanged(String name, String field, Consumer<Probe> change) {
+            return new Case(name, field, change, false, false);
+        }
+    }
+
+    private static final List<Case> CASES = List.of(
+            Case.synced("int assigned", "intValue", p -> p.intValue = 5),
+            Case.synced("long assigned", "longValue", p -> p.longValue = 1L << 40),
+            Case.synced("float assigned", "floatValue", p -> p.floatValue = 0.5f),
+            Case.synced("double assigned", "doubleValue", p -> p.doubleValue = 0.25),
+            Case.synced("boolean assigned", "boolValue", p -> p.boolValue = true),
+            Case.synced("String assigned", "text", p -> p.text = "changed"),
+            Case.synced("enum assigned", "facing", p -> p.facing = Direction.SOUTH),
+            Case.synced("registry entry assigned", "item", p -> p.item = Items.DIAMOND),
+            Case.synced("UUID assigned", "owner", p -> p.owner = new UUID(3, 4)),
+            Case.synced("ResourceLocation assigned", "location", p -> p.location = LDLib2.id("b")),
+            Case.synced("BlockState assigned", "state", p -> p.state = Blocks.DIRT.defaultBlockState()),
+            Case.synced("ItemStack assigned", "stack", p -> p.stack = new ItemStack(Items.DIAMOND)),
+            Case.synced("ItemStack grown in place", "stack", p -> p.stack.grow(1)),
+            Case.synced("FluidStack grown in place", "fluid", p -> p.fluid.grow(10)),
+            Case.synced("mutable BlockPos moved in place", "pos", p -> ((BlockPos.MutableBlockPos) p.pos).move(Direction.UP)),
+            Case.synced("Vector3f changed in place", "vector", p -> p.vector.x = 5),
+            Case.synced("int[] element assigned", "ints", p -> p.ints[1] = 7),
+            Case.synced("ItemStack[] element assigned", "stacks", p -> p.stacks[1] = new ItemStack(Items.STICK)),
+            Case.synced("ItemStack[] element grown in place", "stacks", p -> p.stacks[0].grow(1)),
+            Case.synced("List<String> added to", "strings", p -> p.strings.add("b")),
+            Case.synced("List<String> element set", "strings", p -> p.strings.set(0, "z")),
+            Case.synced("List<Integer> element set", "integers", p -> p.integers.set(0, 2000)),
+            Case.synced("List<BlockPos> added to", "positions", p -> p.positions.add(new BlockPos(4, 5, 6))),
+            Case.synced("Map key added", "scores", p -> p.scores.put("b", 2)),
+            Case.synced("Map value replaced", "scores", p -> p.scores.put("a", 5)),
+            Case.synced("@ManagedCodec list added to", "codecTags", p -> p.codecTags.add("b")),
+            Case.synced("container slot set", "items", p -> p.items.setStackInSlot(2, new ItemStack(Items.DIAMOND, 3))),
+            Case.synced("container stack grown in place", "items", p -> p.items.getStackInSlot(1).grow(1)),
+            Case.synced("container slot emptied", "items", p -> p.items.setStackInSlot(0, ItemStack.EMPTY)),
+            Case.synced("container resized", "items", p -> p.items.setSize(5)),
+            Case.synced("tank filled", "tank", p -> p.tank.fill(new FluidStack(Fluids.WATER, 100), IFluidHandler.FluidAction.EXECUTE)),
+            Case.synced("tank fluid grown in place", "tank", p -> p.tank.getFluid().grow(10)),
+            Case.synced("tank drained empty", "tank", p -> p.tank.drain(1000, IFluidHandler.FluidAction.EXECUTE)),
+            Case.synced("tank capacity changed", "tank", p -> p.tank.setCapacity(2000)),
+            Case.synced("custom container slot set", "lockableItems", p -> p.lockableItems.setStackInSlot(1, new ItemStack(Items.DIAMOND))),
+            Case.synced("custom container stack grown in place", "lockableItems", p -> p.lockableItems.getStackInSlot(0).grow(1)),
+            Case.synced("custom container's own state changed", "lockableItems", p -> p.lockableItems.locked = true),
+            Case.synced("custom tank filled", "lockableTank", p -> p.lockableTank.fill(new FluidStack(Fluids.WATER, 100), IFluidHandler.FluidAction.EXECUTE)),
+            Case.synced("custom tank's own state changed", "lockableTank", p -> p.lockableTank.locked = true),
+            Case.synced("container in a List: slot set", "itemList", p -> p.itemList.getFirst().setStackInSlot(1, new ItemStack(Items.DIAMOND))),
+            Case.synced("container in a List: stack grown in place", "itemList", p -> p.itemList.getFirst().getStackInSlot(0).grow(1)),
+            Case.synced("container added to a List", "itemList", p -> p.itemList.add(new ItemStackTransfer(1))),
+            Case.synced("INBTSerializable in a Map changed in place", "nestedMap", p -> p.nestedMap.get("a").counter = 5),
+            Case.synced("nested managed field assigned", "part", p -> p.part.progress = 9),
+            Case.synced("nested managed boolean assigned", "part", p -> p.part.working = true),
+            new Case("persist-only field assigned", "persistOnly", p -> p.persistOnly = 3, false, true),
+
+            Case.unchanged("int assigned the same value", "intValue", p -> p.intValue = p.intValue),
+            Case.unchanged("String replaced by an equal copy", "text", p -> p.text = new String(p.text)),
+            Case.unchanged("ItemStack replaced by an equal copy", "stack", p -> p.stack = p.stack.copy()),
+            Case.unchanged("BlockPos replaced by an equal copy", "pos", p -> p.pos = p.pos.immutable()),
+            Case.unchanged("Vector3f replaced by an equal copy", "vector", p -> p.vector = new Vector3f(p.vector)),
+            Case.unchanged("List<String> element set to an equal copy", "strings", p -> p.strings.set(0, new String(p.strings.get(0)))),
+            Case.unchanged("container slot set to an equal stack", "items", p -> p.items.setStackInSlot(0, p.items.getStackInSlot(0).copy())),
+            Case.unchanged("container in a List: slot set to an equal stack", "itemList", p -> p.itemList.getFirst().setStackInSlot(0, p.itemList.getFirst().getStackInSlot(0).copy())),
+            Case.unchanged("INBTSerializable in a Map given an equal value", "nestedMap", p -> p.nestedMap.get("a").label = new String(p.nestedMap.get("a").label)),
+            Case.unchanged("tank refilled with an equal copy", "tank", p -> p.tank.setFluid(p.tank.getFluid().copy())),
+            Case.unchanged("custom container slot set to an equal stack", "lockableItems", p -> p.lockableItems.setStackInSlot(0, p.lockableItems.getStackInSlot(0).copy())),
+            Case.unchanged("nested managed field assigned the same value", "part", p -> p.part.progress = p.part.progress)
+    );
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void everyFieldKindSyncsExactlyItsChanges(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        for (var c : CASES) {
+            var server = settled(level);
+            var client = new Probe(level);
+            server.initClient(client);
+            if (server.syncTo(client)) {
+                failures.add(c.name + ": sent " + server.syncFieldNames(server.sentChanged) + " before anything changed");
+                continue;
+            }
+
+            c.change.accept(server);
+            boolean sent = server.syncTo(client);
+            if (c.expectSync) {
+                int index = server.syncIndex(c.field);
+                if (!sent) {
+                    failures.add(c.name + ": not synced");
+                } else if (server.sentChanged.cardinality() != 1 || !server.sentChanged.get(index)) {
+                    failures.add(c.name + ": sent " + server.syncFieldNames(server.sentChanged) + ", expected [" + c.field + "]");
+                } else if (!client.syncedValue(c.field).equals(server.syncedValue(c.field))) {
+                    failures.add(c.name + ": client has " + client.syncedValue(c.field) + ", server " + server.syncedValue(c.field));
+                }
+            } else if (sent) {
+                failures.add(c.name + ": sent " + server.syncFieldNames(server.sentChanged) + ", expected nothing");
+            }
+            if (c.expectPersist != server.persistenceNotices > 0) {
+                failures.add(c.name + ": " + server.persistenceNotices + " persistence notices, expected " + (c.expectPersist ? "some" : "none"));
+            }
+
+            server.persistenceNotices = 0;
+            if (server.syncTo(client)) {
+                failures.add(c.name + ": sent " + server.syncFieldNames(server.sentChanged) + " again with nothing changed");
+            }
+            if (server.persistenceNotices > 0) {
+                failures.add(c.name + ": notified persistence again with nothing changed");
+            }
+        }
+        report(helper, failures);
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void conditionalFieldWaitsForItsCondition(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        var server = settled(level);
+        var client = new Probe(level);
+        server.initClient(client);
+
+        server.gated = -1;
+        if (server.syncTo(client)) failures.add("synced while the condition is false: " + server.syncFieldNames(server.sentChanged));
+        server.gated = 4;
+        if (!server.syncTo(client) || client.gated != 4) failures.add("not synced once the condition holds, client has " + client.gated);
+        server.gated = -2;
+        if (server.syncTo(client) || client.gated != 4) failures.add("synced after the condition failed again, client has " + client.gated);
+        if (server.persistenceNotices > 0) failures.add("a field that is only synced notified persistence");
+        report(helper, failures);
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void lazyFieldWaitsForMarkDirty(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        var server = settled(level);
+        var client = new Probe(level);
+        server.initClient(client);
+
+        server.lazy = 3;
+        if (server.syncTo(client)) failures.add("synced without markDirty: " + server.syncFieldNames(server.sentChanged));
+        server.markDirty("lazy");
+        if (!server.syncTo(client) || client.lazy != 3) failures.add("not synced after markDirty, client has " + client.lazy);
+        if (server.syncTo(client)) failures.add("synced again after markDirty was consumed");
+        report(helper, failures);
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void changesInOnePeriodShareOnePacket(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        var server = settled(level);
+        var client = new Probe(level);
+        server.initClient(client);
+
+        server.intValue = 1;
+        server.stack.grow(1);
+        server.items.setStackInSlot(2, new ItemStack(Items.DIAMOND));
+        server.part.progress = 3;
+        server.packets = 0;
+        server.syncTo(client);
+        var expected = List.of("intValue", "stack", "items", "part");
+        if (server.packets != 1) failures.add(server.packets + " packets for one period");
+        for (var field : expected) {
+            if (server.sentChanged == null || !server.sentChanged.get(server.syncIndex(field))) {
+                failures.add(field + " missing from " + server.syncFieldNames(server.sentChanged));
+            } else if (!client.syncedValue(field).equals(server.syncedValue(field))) {
+                failures.add(field + ": client has " + client.syncedValue(field) + ", server " + server.syncedValue(field));
+            }
+        }
+        if (server.sentChanged != null && server.sentChanged.cardinality() != expected.size()) {
+            failures.add("sent " + server.syncFieldNames(server.sentChanged) + ", expected " + expected);
+        }
+        if (server.persistenceNotices == 0) failures.add("persistence was not notified");
+        report(helper, failures);
+    }
+
+    private static Probe settled(ServerLevel level) {
+        var probe = new Probe(level);
+        probe.settle();
+        return probe;
+    }
+
+    private static void report(GameTestHelper helper, List<String> failures) {
+        if (failures.isEmpty()) {
+            helper.succeed();
+        } else {
+            helper.fail(failures.size() + " failed:\n" + String.join("\n", failures));
+        }
+    }
+}

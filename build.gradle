@@ -162,6 +162,8 @@ runs {
     // The gametest system is also enabled by default for other run configs under the /test command.
     gameTestServer {
         systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        // -PldSyncBench runs the sync benchmark (test/syncdata/bench) along with the gametests
+        systemProperty 'ldlib2.syncBench', project.hasProperty('ldSyncBench').toString()
     }
 
     data {
