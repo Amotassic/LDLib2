@@ -20,6 +20,10 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -38,6 +42,10 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Stream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -463,6 +471,68 @@ public class SyncChangeDetectionTest {
         var emptyMark = accessor.updateMark(mark, "");
         if (emptyMark == null || !accessor.areDifferent(mark, "")) failures.add("a value encoded as empty looked unchanged");
         if (emptyMark != null && accessor.updateMark(emptyMark, "") != null) failures.add("an unchanged empty value got a new mark");
+        report(helper, failures);
+    }
+
+    public static class NullableElements extends SyncProbeHolder {
+        @Persisted
+        @DescSynced
+        public List<String> strings = new ArrayList<>(Arrays.asList("a", null));
+        @Persisted
+        @DescSynced
+        public List<Integer> numbers = new ArrayList<>(Arrays.asList(1, null));
+        @Persisted
+        @DescSynced
+        public Set<String> names = new HashSet<>(Arrays.asList("x", null));
+
+        public NullableElements(ServerLevel level) {
+            super(level);
+        }
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void nullElementsSurviveSavingAndTheFirstSync(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var access = level.registryAccess();
+        var failures = new ArrayList<String>();
+        var source = new NullableElements(level);
+
+        var tag = new CompoundTag();
+        source.saveManagedPersistentData(access, tag, false);
+        var loaded = new NullableElements(level);
+        loaded.strings.clear();
+        loaded.numbers.clear();
+        loaded.names.clear();
+        try {
+            loaded.loadManagedPersistentData(access, tag);
+            if (!source.strings.equals(loaded.strings)) failures.add("saved strings " + source.strings + " loaded as " + loaded.strings);
+            if (!source.numbers.equals(loaded.numbers)) failures.add("saved numbers " + source.numbers + " loaded as " + loaded.numbers);
+            if (!source.names.equals(loaded.names)) failures.add("saved names " + source.names + " loaded as " + loaded.names);
+        } catch (Exception e) {
+            failures.add("loading failed: " + e);
+        }
+
+        var client = new NullableElements(level);
+        client.strings.clear();
+        client.numbers.clear();
+        client.names.clear();
+        try {
+            source.initClient(client);
+            if (!source.strings.equals(client.strings)) failures.add("first sync gave strings " + client.strings);
+            if (!source.numbers.equals(client.numbers)) failures.add("first sync gave numbers " + client.numbers);
+            if (!source.names.equals(client.names)) failures.add("first sync gave names " + client.names);
+        } catch (Exception e) {
+            failures.add("first sync failed: " + e);
+        }
+
+        var corrupt = new CompoundTag();
+        source.saveManagedPersistentData(access, corrupt, false);
+        corrupt.getCompound("managed").put("numbers",
+                NbtOps.INSTANCE.createList(Stream.of(IntTag.valueOf(1), StringTag.valueOf("not a number"), IntTag.valueOf(3))));
+        var damaged = new NullableElements(level);
+        damaged.loadManagedPersistentData(access, corrupt);
+        if (!Arrays.asList(1, null, 3).equals(damaged.numbers)) failures.add("an element that fails to load became " + damaged.numbers);
         report(helper, failures);
     }
 
