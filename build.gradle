@@ -263,9 +263,6 @@ dependencies {
     // mock
     testImplementation 'org.mockito:mockito-core:5.5.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
-
-    // moddevmcp
-//    localImplementation("dev.vfyjxf:moddevmcp:${moddevmcp_version}") { transitive = false }
 }
 
 tasks.withType(ProcessResources).configureEach {
