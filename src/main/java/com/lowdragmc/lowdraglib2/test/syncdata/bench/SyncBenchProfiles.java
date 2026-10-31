@@ -194,6 +194,21 @@ public final class SyncBenchProfiles {
         }
     }
 
+    public static class VersionedContainers extends SyncProbeHolder {
+        @Persisted
+        @DescSynced
+        public final VersionedItems items = new VersionedItems(9);
+        @Persisted
+        @DescSynced
+        public final VersionedTank tank = new VersionedTank(16000);
+
+        public VersionedContainers(ServerLevel level) {
+            super(level);
+            fill(items);
+            tank.fill(new FluidStack(Fluids.WATER, 8000), IFluidHandler.FluidAction.EXECUTE);
+        }
+    }
+
     public static class CollectionFields extends SyncProbeHolder {
         @Persisted
         @DescSynced
@@ -313,6 +328,9 @@ public final class SyncBenchProfiles {
     public static final Profile<CustomContainers> CUSTOM_CONTAINERS = new Profile<>("containers overriding serializeNBT",
             "ItemStackTransfer(9 full) and FluidStorage subclasses that save extra state", CustomContainers::new,
             (h, p) -> h.items.setStackInSlot(0, new ItemStack(ITEMS[0], 16 + (p & 1))));
+    public static final Profile<VersionedContainers> VERSIONED_CONTAINERS = new Profile<>("containers with a content version",
+            "the same subclasses, counting their changes through IContentVersion", VersionedContainers::new,
+            (h, p) -> h.items.setStackInSlot(0, new ItemStack(ITEMS[0], 16 + (p & 1))));
     public static final Profile<CollectionFields> COLLECTIONS = new Profile<>("collections",
             "List<String>(8), List<Integer>(8), Map<String,Integer>(8), List<BlockPos>(8)", CollectionFields::new,
             (h, p) -> h.amounts.set(0, 1000 + (p & 1)));
@@ -325,5 +343,5 @@ public final class SyncBenchProfiles {
             Mixed::new, Mixed::work);
 
     public static final List<Profile<?>> ALL = List.of(PRIMITIVES, VALUES, MUTABLE_VALUES, CODECS, CONTAINERS,
-            CUSTOM_CONTAINERS, COLLECTIONS, ARRAYS, NESTED, MIXED);
+            CUSTOM_CONTAINERS, VERSIONED_CONTAINERS, COLLECTIONS, ARRAYS, NESTED, MIXED);
 }

@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.math.HDRColor;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.math.Size;
+import com.lowdragmc.lowdraglib2.syncdata.mark.MarkStrategies;
 import com.lowdragmc.lowdraglib2.syncdata.utils.StackSnapshots;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.arraylike.ArrayAccessor;
@@ -331,6 +332,7 @@ public class AccessorRegistries {
      * Initialize the default accessors.
      */
     public static void init() {
+        MarkStrategies.init();
         setPriority(-1);
 
         registerAccessor(PrimitiveAccessor.of(Codec.INT, ByteBufCodecs.VAR_INT, int.class, Integer.class));

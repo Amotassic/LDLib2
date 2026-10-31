@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.test.syncdata;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.misc.FluidStorage;
 import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib2.syncdata.IContentVersion;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
@@ -225,6 +226,53 @@ public abstract class SyncProbeHolder implements IManaged, ISyncMangedHolder, IP
         public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
             super.deserializeNBT(provider, tag);
             locked = tag.getBoolean("locked");
+        }
+    }
+
+    /**
+     * Saves extra state like {@link LockableItems}, so only its version tells the sync cheaply that it changed. The
+     * version follows the handler's own change notifications and {@link #setLocked}, not stacks changed in place.
+     */
+    public static class VersionedItems extends LockableItems implements IContentVersion {
+        private volatile long version;
+
+        public VersionedItems(int size) {
+            super(size);
+        }
+
+        public void setLocked(boolean locked) {
+            this.locked = locked;
+            version++;
+        }
+
+        @Override
+        protected void onContentsChanged(int slot) {
+            version++;
+            super.onContentsChanged(slot);
+        }
+
+        @Override
+        public long getContentVersion() {
+            return version;
+        }
+    }
+
+    public static class VersionedTank extends LockableTank implements IContentVersion {
+        private volatile long version;
+
+        public VersionedTank(int capacity) {
+            super(capacity);
+        }
+
+        @Override
+        public void onContentsChanged() {
+            version++;
+            super.onContentsChanged();
+        }
+
+        @Override
+        public long getContentVersion() {
+            return version;
         }
     }
 

@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.syncdata.accessor.direct;
 
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
+import com.lowdragmc.lowdraglib2.syncdata.mark.MarkStrategies;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.ref.DirectRef;
 import com.lowdragmc.lowdraglib2.syncdata.ref.MutableDirectRef;
@@ -153,7 +154,8 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
         }
 
         /**
-         * Use the codec to mark the value. This will use the {@link JavaOps} to generate the mark.
+         * Use the codec to mark the value. This will use the {@link JavaOps} to generate the mark, unless the value's
+         * class has a {@link MarkStrategies strategy} registered, which is used instead.
          */
         public Builder<TYPE> codecMark() {
             this.markFunction = null;
@@ -189,7 +191,7 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
             Objects.requireNonNull(codec, "Codec is not set");
             return new CustomDirectAccessor<>(type, supportChildClass, codec,
                     Objects.requireNonNull(streamCodec, "Stream codec is not set"),
-                    codecMark ? new CodecMark<>(codec) : markFunction);
+                    codecMark ? MarkStrategies.orElse(new CodecMark<>(codec)) : markFunction);
         }
     }
 }
