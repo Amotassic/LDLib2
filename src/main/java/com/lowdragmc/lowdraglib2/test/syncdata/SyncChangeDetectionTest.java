@@ -536,6 +536,52 @@ public class SyncChangeDetectionTest {
         report(helper, failures);
     }
 
+    public static class Nesting extends SyncProbeHolder {
+        @Persisted
+        @DescSynced
+        public final Part part = new Part(this::notifyPersistence);
+
+        public Nesting(ServerLevel level) {
+            super(level);
+        }
+
+        private void pollWithoutSending() {
+            for (var field : getRootStorage().getNonLazyFields()) {
+                field.update();
+            }
+        }
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void unsentNestedChangesNotifyPersistenceOncePerChange(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        var server = new Nesting(level);
+        server.settle();
+        var client = new Nesting(level);
+        server.initClient(client);
+
+        server.part.progress = 1;
+        server.pollWithoutSending();
+        long afterChange = server.persistenceNotices;
+        if (afterChange == 0) failures.add("a nested change was not persisted");
+        for (int i = 0; i < 5; i++) {
+            server.pollWithoutSending();
+        }
+        if (server.persistenceNotices != afterChange) {
+            failures.add("an unsent nested change notified persistence again on every look: " + afterChange + " -> " + server.persistenceNotices);
+        }
+
+        server.part.progress = 2;
+        server.pollWithoutSending();
+        if (server.persistenceNotices == afterChange) failures.add("a second change while the first was unsent was not persisted");
+
+        if (!server.syncTo(client) || client.part.progress != 2) failures.add("the client got progress " + client.part.progress + " once it was sent");
+        if (server.syncTo(client)) failures.add("sent again with nothing changed: " + server.syncFieldNames(server.sentChanged));
+        report(helper, failures);
+    }
+
     private static Probe settled(ServerLevel level) {
         var probe = new Probe(level);
         probe.settle();

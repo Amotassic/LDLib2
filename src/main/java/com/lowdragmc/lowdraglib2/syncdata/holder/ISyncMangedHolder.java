@@ -49,7 +49,8 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
      * Sends the managed fields that changed since the last sync to the players watching {@link #getTrackingPos()}.
      * Holders on the async thread run it every period. From an async period, the changes go out with the rest of the
      * period's once it ends, to the watchers of the chunk {@link #getTrackingPos()} returned when it ran; from anywhere
-     * else, right away.
+     * else, right away. Changes always count for persistence, but while nobody watches the chunk an async sync leaves
+     * them marked instead of sending them, unless {@code force} is set.
      *
      * @param force if true, all fields will be synced, otherwise only the ones that have changed will be synced
      */
@@ -59,6 +60,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
             field.update();
         }
         if (rootStorage.hasDirtySyncFields()) {
+            if (!force && SyncPacketBatch.deferUnwatched(this)) return;
             var changed = new BitSet();
             var syncedFields = rootStorage.getSyncFields();
             var serverLevel = getServerLevel();

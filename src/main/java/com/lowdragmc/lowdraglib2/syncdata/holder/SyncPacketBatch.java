@@ -6,6 +6,9 @@ import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntities;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongSets;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
@@ -20,18 +23,25 @@ import org.jetbrains.annotations.ApiStatus;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * The syncs an async period found, sent once it ends: the block entity updates of a chunk travel in one packet, and
- * nothing is built for chunks no player is watching.
+ * nothing is encoded or built for chunks no player is watching.
  */
 public final class SyncPacketBatch implements AsyncThreadData.PeriodTask {
     private static final int MAX_PACKET_BYTES = 256 * 1024;
 
+    // chunks nobody watched when a period last looked at them; a chunk not listed counts as watched
+    private static final Map<ServerLevel, LongSet> UNWATCHED = Collections.synchronizedMap(new WeakHashMap<>());
+
     private final Map<ServerLevel, Long2ObjectMap<List<Update>>> updates = new LinkedHashMap<>();
+    private final Map<ServerLevel, LongSet> unwatched = new HashMap<>();
 
     /**
      * Queues the changes a sync found to go out with the rest of the current async period's.
@@ -43,15 +53,42 @@ public final class SyncPacketBatch implements AsyncThreadData.PeriodTask {
         if (chunk == null) return false;
         var batch = AsyncThreadData.periodTask(SyncPacketBatch.class, SyncPacketBatch::new);
         if (batch == null) return false;
-        batch.updates.computeIfAbsent(holder.getServerLevel(), level -> new Long2ObjectLinkedOpenHashMap<>())
-                .computeIfAbsent(chunk.toLong(), key -> new ArrayList<>())
+        batch.chunks(holder.getServerLevel()).computeIfAbsent(chunk.toLong(), key -> new ArrayList<>())
                 .add(new Update(holder, changed, data));
         return true;
+    }
+
+    /**
+     * Whether a sync on the async thread may leave the changes it found for later, because nobody watched the holder's
+     * chunk when a period last looked. They stay marked, so once someone watches they go out with the values the fields
+     * have by then; until then the chunk gets looked at again at the end of every period that defers for it.
+     *
+     * @return {@code false} if the chunk may be watched or the thread is not running an async period, so the caller
+     * has to send the changes
+     */
+    public static boolean deferUnwatched(ISyncMangedHolder holder) {
+        var chunk = holder.getTrackingPos();
+        if (chunk == null) return false;
+        var batch = AsyncThreadData.periodTask(SyncPacketBatch.class, SyncPacketBatch::new);
+        if (batch == null) return false;
+        var level = holder.getServerLevel();
+        if (!batch.unwatched(level).contains(chunk.toLong())) return false;
+        batch.chunks(level).computeIfAbsent(chunk.toLong(), key -> new ArrayList<>());
+        return true;
+    }
+
+    private Long2ObjectMap<List<Update>> chunks(ServerLevel level) {
+        return updates.computeIfAbsent(level, key -> new Long2ObjectLinkedOpenHashMap<>());
+    }
+
+    private LongSet unwatched(ServerLevel level) {
+        return unwatched.computeIfAbsent(level, key -> UNWATCHED.computeIfAbsent(key, k -> LongSets.synchronize(new LongOpenHashSet())));
     }
 
     @Override
     public void run(MinecraftServer server) {
         updates.forEach((level, chunks) -> {
+            var unwatched = unwatched(level);
             for (var chunk : chunks.long2ObjectEntrySet()) {
                 var receivers = new ArrayList<Receiver>();
                 for (var player : level.getChunkSource().chunkMap.getPlayers(new ChunkPos(chunk.getLongKey()), false)) {
@@ -60,7 +97,10 @@ public final class SyncPacketBatch implements AsyncThreadData.PeriodTask {
                         receivers.add(new PlayerReceiver(player));
                     }
                 }
-                if (!receivers.isEmpty()) {
+                if (receivers.isEmpty()) {
+                    unwatched.add(chunk.getLongKey());
+                } else {
+                    unwatched.remove(chunk.getLongKey());
                     send(receivers, build(level, chunk.getValue()));
                 }
             }
