@@ -209,8 +209,9 @@ public class SyncBenchmark {
 
         private long cpuStart, timeStart, periodStart, setChangedStart, setChangedNanosStart;
         private Map<Long, Long> asyncStart = Map.of();
+        private Map<Long, Long> asyncAllocStart = Map.of();
         private double onSeconds, offSeconds;
-        private long onCpu, offCpu, asyncNanos, periods, setChanged, setChangedNanos;
+        private long onCpu, offCpu, asyncNanos, asyncAlloc, periods, setChanged, setChangedNanos;
 
         private MacroRun(AsyncThreadData asyncData, List<SyncBenchBlockEntity> blockEntities) {
             this.asyncData = asyncData;
@@ -237,6 +238,7 @@ public class SyncBenchmark {
 
         private void startPhase() {
             asyncStart = asyncThreadCpu();
+            asyncAllocStart = asyncThreadAllocation();
             periodStart = asyncData.getPeriodID();
             setChangedStart = SyncBenchBlockEntity.SET_CHANGED_CALLS.get();
             setChangedNanosStart = SyncBenchBlockEntity.SET_CHANGED_NANOS.get();
@@ -254,6 +256,9 @@ public class SyncBenchmark {
             }
             onCpu += cpu;
             onSeconds += seconds;
+            for (var entry : asyncThreadAllocation().entrySet()) {
+                asyncAlloc += entry.getValue() - asyncAllocStart.getOrDefault(entry.getKey(), 0L);
+            }
             for (var entry : asyncThreadCpu().entrySet()) {
                 asyncNanos += entry.getValue() - asyncStart.getOrDefault(entry.getKey(), 0L);
             }
@@ -275,7 +280,8 @@ public class SyncBenchmark {
                     + " s with it off, alternating, at 20 ticks per second");
             lines.add("async thread: " + SyncBenchReport.fmt(asyncNanos / 1e7 / onSeconds) + "% of a core; "
                     + SyncBenchReport.fmt(periods / onSeconds) + " periods per second (target 20); "
-                    + SyncBenchReport.fmt(asyncNanos / 1e3 / Math.max(1, periods) / total) + " us per block entity per period");
+                    + SyncBenchReport.fmt(asyncNanos / 1e3 / Math.max(1, periods) / total) + " us per block entity per period; allocates "
+                    + SyncBenchReport.fmt(asyncAlloc / 1e6 / onSeconds) + " MB per second");
             lines.add("server thread: " + SyncBenchReport.fmt(onCpu / 1e6 / onSeconds) + " ms CPU per second with sync, "
                     + SyncBenchReport.fmt(offCpu / 1e6 / offSeconds) + " without = " + SyncBenchReport.fmt(syncNanosPerSecond / 1e6)
                     + " ms per second spent on sync (" + SyncBenchReport.fmt(syncNanosPerSecond / 1e7) + "% of the tick budget)");
@@ -387,6 +393,18 @@ public class SyncBenchmark {
         long start = System.nanoTime();
         task.run();
         return System.nanoTime() - start;
+    }
+
+    private static Map<Long, Long> asyncThreadAllocation() {
+        var result = new HashMap<Long, Long>();
+        if (!(THREADS instanceof com.sun.management.ThreadMXBean sun)) return result;
+        for (var thread : Thread.getAllStackTraces().keySet()) {
+            if (thread.getName().startsWith("LDLib Async Thread")) {
+                long bytes = sun.getThreadAllocatedBytes(thread.threadId());
+                if (bytes >= 0) result.put(thread.threadId(), bytes);
+            }
+        }
+        return result;
     }
 
     private static Map<Long, Long> asyncThreadCpu() {
