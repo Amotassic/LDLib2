@@ -1,6 +1,14 @@
 {
     "vertex": "ldlib2:raster_text",
     "fragment": "ldlib2:raster_text",
+    "blend": {
+        "func": "add",
+        "srcrgb": "srcalpha",
+        "dstrgb": "1-srcalpha",
+        "srcalpha": "1",
+        "dstalpha": "1-srcalpha"
+    },
+    "attributes": [ "Position", "Color", "UV0", "UV2" ],
     "samplers": [
         { "name": "Sampler0" },
         { "name": "Sampler2" }

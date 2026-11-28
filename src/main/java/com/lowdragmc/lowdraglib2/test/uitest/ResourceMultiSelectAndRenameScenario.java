@@ -2,7 +2,6 @@ package com.lowdragmc.lowdraglib2.test.uitest;
 
 import com.lowdragmc.lowdraglib2.editor.resource.ColorsResource;
 import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
-import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.browser.AssetBrowser;
@@ -21,11 +20,7 @@ import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.TestEditor;
 import com.lowdragmc.lowdraglib2.test.TestProject;
-import com.lowdragmc.lowdraglib2.uitest.ElementBounds;
-import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
-import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
-import com.lowdragmc.lowdraglib2.uitest.TestContext;
-import com.lowdragmc.lowdraglib2.uitest.UIScenario;
+import com.lowdragmc.lowdraglib2.uitest.*;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
@@ -452,7 +447,7 @@ public class ResourceMultiSelectAndRenameScenario implements UIScenario {
             collectLeaf(ref.element(), label, matches);
         }
         ctx.require("found menu leaf '" + label + "' (found " + matches.size() + ")", matches.size() == 1);
-        var b = ElementBounds.of(matches.getFirst());
+        var b = ElementBounds.of(matches.get(0));
         ctx.input().moveTo(b.centerX(), b.centerY());
         ctx.input().mouseDown(b.centerX(), b.centerY(), Keys.MOUSE_LEFT);
         ctx.input().mouseUp(b.centerX(), b.centerY(), Keys.MOUSE_LEFT);
@@ -480,7 +475,7 @@ public class ResourceMultiSelectAndRenameScenario implements UIScenario {
     @Nullable
     private static UIElement cellNamed(UIElement container, String name) {
         for (var cell : container.getChildren()) {
-            if (!cell.getChildren().isEmpty() && cell.getChildren().getLast() instanceof TextElement label) {
+            if (!cell.getChildren().isEmpty() && cell.getChildren().get(cell.getChildren().size() - 1) instanceof TextElement label) {
                 if (name.equals(label.getText().getString())) return cell;
             }
         }

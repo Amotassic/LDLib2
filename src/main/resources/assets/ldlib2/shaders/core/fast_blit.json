@@ -1,6 +1,13 @@
 {
     "vertex": "ldlib2:fast_blit",
     "fragment": "ldlib2:fast_blit",
+    "blend": {
+        "func": "add",
+        "srcrgb": "srcalpha",
+        "dstrgb": "1-srcalpha",
+        "srcalpha": "1",
+        "dstalpha": "0"
+    },
     "attributes": [ "Position" ],
     "samplers": [
         { "name": "DiffuseSampler" }

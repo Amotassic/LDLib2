@@ -1,6 +1,14 @@
 {
     "vertex": "ldlib2:sdf_rect",
     "fragment": "ldlib2:sdf_rect",
+    "blend": {
+        "func": "add",
+        "srcrgb": "1",
+        "dstrgb": "1-srcalpha",
+        "srcalpha": "1",
+        "dstalpha": "1-srcalpha"
+    },
+    "attributes": [ "Position" ],
     "samplers": [
     ],
     "uniforms": [

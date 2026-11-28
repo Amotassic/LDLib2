@@ -3,42 +3,27 @@ package com.lowdragmc.lowdraglib2.editor.ui.resource;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
-import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
-import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
-import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
-import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
-import com.lowdragmc.lowdraglib2.editor.resource.Resource;
+import com.lowdragmc.lowdraglib2.editor.resource.*;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.editor.ui.browser.FileOps;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
-import com.lowdragmc.lowdraglib2.editor.resource.ResourceImportContext;
-import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
-import com.lowdragmc.lowdraglib2.editor.resource.ResourceProvider;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.data.*;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
-import dev.vfyjxf.taffy.style.AlignContent;
-import dev.vfyjxf.taffy.style.AlignItems;
-import dev.vfyjxf.taffy.style.FlexDirection;
-import dev.vfyjxf.taffy.style.FlexWrap;
-import dev.vfyjxf.taffy.style.TaffyPosition;
+import dev.vfyjxf.taffy.style.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -46,25 +31,12 @@ import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 import org.lwjgl.glfw.GLFW;
 
-import org.jetbrains.annotations.Nullable;
 import java.io.File;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.*;
 import java.util.stream.Collectors;
 
@@ -1056,7 +1028,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             return;
         }
         // The current provider when it can take the copy — the old behaviour, still the common case.
-        var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.getFirst();
+        var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.get(0);
         showCopyDialog(targets, defaultTarget, copyNameOf(key),
                 (target, name) -> copyResourceTo(copied, target, name));
     }
@@ -1166,7 +1138,7 @@ public class ResourceProviderContainer<T> extends UIElement {
         var validKeys = keys.stream().filter(k -> k != null && canCopy.test(k)).distinct().toList();
         if (validKeys.isEmpty()) return;
         if (validKeys.size() == 1) {
-            copyResource(validKeys.getFirst());
+            copyResource(validKeys.get(0));
             return;
         }
         var instance = resourceProvider.getResourceInstance();
@@ -1183,7 +1155,7 @@ public class ResourceProviderContainer<T> extends UIElement {
             }
         }
         if (copiedEntries.isEmpty()) return;
-        var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.getFirst();
+        var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.get(0);
         showBatchCopyDialog(targets, defaultTarget, copiedEntries.size(),
                 target -> copyResourcesTo(copiedEntries, target));
     }
@@ -1301,7 +1273,7 @@ public class ResourceProviderContainer<T> extends UIElement {
         }
         if (toRemove.isEmpty()) return;
         if (toRemove.size() == 1) {
-            removeResource(toRemove.getFirst().getA(), confirm);
+            removeResource(toRemove.get(0).getA(), confirm);
             return;
         }
         Runnable perform = () -> editor.historyView.pushHistory(
@@ -1350,7 +1322,11 @@ public class ResourceProviderContainer<T> extends UIElement {
         }
         if (key != null && selectedResources.remove(key)) {
             if (key.equals(selected)) {
-                selected = selectedResources.isEmpty() ? null : selectedResources.getLast();
+                if (selectedResources.isEmpty()) selected = null;
+                else {
+                    var list = selectedResources.stream().toList();
+                    selected = list.get(list.size() - 1);
+                }
             }
             if (key.equals(selectionAnchor)) {
                 selectionAnchor = selected;
@@ -1391,7 +1367,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     public static void startInlineRename(UIElement cell, String initial,
                                          Predicate<Character> charValidator, Consumer<String> onCommit) {
         if (cell == null || cell.getChildren().isEmpty()) return;
-        if (!(cell.getChildren().getLast() instanceof Label label)) return;
+        if (!(cell.getChildren().get(cell.getChildren().size() - 1) instanceof Label label)) return;
         var initialText = initial == null ? "" : initial;
         var textField = new TextField().setText(initialText).setCharValidator(charValidator);
         textField.addClass(CLASS_RENAME_FIELD);

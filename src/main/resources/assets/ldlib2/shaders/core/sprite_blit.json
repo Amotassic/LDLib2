@@ -1,6 +1,13 @@
 {
     "vertex": "position_tex_color",
     "fragment": "ldlib2:sprite_blit",
+    "blend": {
+        "func": "add",
+        "srcrgb": "srcalpha",
+        "dstrgb": "1-srcalpha",
+        "srcalpha": "1",
+        "dstalpha": "1-srcalpha"
+    },
     "attributes": [
         "Position",
         "UV0",

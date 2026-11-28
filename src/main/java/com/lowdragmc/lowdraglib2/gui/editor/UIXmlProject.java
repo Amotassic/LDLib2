@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.editor;
 
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
-import com.lowdragmc.lowdraglib2.editor.resource.*;
+import com.lowdragmc.lowdraglib2.editor.resource.Resources;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.editor.view.UIXmlView;
 import com.lowdragmc.lowdraglib2.utils.TagBuilder;

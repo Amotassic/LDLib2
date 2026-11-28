@@ -1,6 +1,14 @@
 {
     "vertex": "ldlib2:visual_layer",
     "fragment": "ldlib2:visual_layer",
+    "blend": {
+        "func": "add",
+        "srcrgb": "1",
+        "dstrgb": "1-srcalpha",
+        "srcalpha": "1",
+        "dstalpha": "1-srcalpha"
+    },
+    "attributes": [ "Position", "UV0" ],
     "samplers": [
         { "name": "DiffuseSampler" },
         { "name": "Mask" }

@@ -1,6 +1,14 @@
 {
     "vertex": "ldlib2:gui_texture",
     "fragment": "ldlib2:gui_texture",
+    "blend": {
+        "func": "add",
+        "srcrgb": "srcalpha",
+        "dstrgb": "1-srcalpha",
+        "srcalpha": "1",
+        "dstalpha": "1-srcalpha"
+    },
+    "attributes": [ "Position", "UV0", "Color" ],
     "samplers": [
         { "name": "Sampler0" }
     ],

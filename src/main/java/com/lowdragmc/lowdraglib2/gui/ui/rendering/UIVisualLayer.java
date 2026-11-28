@@ -8,10 +8,12 @@ import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.client.Minecraft;
-
 import org.jetbrains.annotations.Nullable;
 
 public class UIVisualLayer {
@@ -195,28 +197,28 @@ public class UIVisualLayer {
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA
         );
 
-        Tesselator tesselator = RenderSystem.renderThreadTesselator();
-        BufferBuilder bufferbuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
+        BufferBuilder bufferbuilder = RenderSystem.renderThreadTesselator().getBuilder();
+        bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
 
         if (overflowVisible) {
             var width = guiContext.surface.guiScaledWidth();
             var height = guiContext.surface.guiScaledHeight();
-            bufferbuilder.addVertex(0, height, 0);
-            bufferbuilder.addVertex(width, height, 0);
-            bufferbuilder.addVertex(width, 0, 0);
-            bufferbuilder.addVertex(0, 0, 0);
+            bufferbuilder.vertex(0, height, 0).endVertex();
+            bufferbuilder.vertex(width, height, 0).endVertex();
+            bufferbuilder.vertex(width, 0, 0).endVertex();
+            bufferbuilder.vertex(0, 0, 0).endVertex();
         } else {
             var x = element.getPositionX();
             var y = element.getPositionY();
             var width = element.getSizeWidth();
             var height = element.getSizeHeight();
             var pose = guiContext.pose.last().pose();
-            bufferbuilder.addVertex(pose, x, y + height, 0);
-            bufferbuilder.addVertex(pose, x + width, y + height, 0);
-            bufferbuilder.addVertex(pose, x + width, y, 0);
-            bufferbuilder.addVertex(pose, x, y, 0);
+            bufferbuilder.vertex(pose, x, y + height, 0).endVertex();
+            bufferbuilder.vertex(pose, x + width, y + height, 0).endVertex();
+            bufferbuilder.vertex(pose, x + width, y, 0).endVertex();
+            bufferbuilder.vertex(pose, x, y, 0).endVertex();
         }
 
-        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+        BufferUploader.drawWithShader(bufferbuilder.end());
     }
 }

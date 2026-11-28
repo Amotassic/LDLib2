@@ -185,7 +185,7 @@ public final class FileOps {
     public static void confirmDelete(UIElement owner, List<File> files, Runnable onDone) {
         if (files.isEmpty()) return;
         if (files.size() == 1) {
-            confirmDelete(owner, files.getFirst(), onDone);
+            confirmDelete(owner, files.get(0), onDone);
             return;
         }
         Dialog.showCheckBox("ldlib.gui.file_dialog.delete",
